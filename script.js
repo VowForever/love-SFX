@@ -8,6 +8,7 @@ const today = new Date();
 
 let data = loadData();
 let activeFilter = "all";
+let activeRecipeFilter = "all";
 let modalContext = null;
 
 const els = {
@@ -36,6 +37,8 @@ const els = {
   timeline: document.getElementById("timeline"),
   wishList: document.getElementById("wishList"),
   albumGrid: document.getElementById("albumGrid"),
+  recipeGrid: document.getElementById("recipeGrid"),
+  recipeFilters: document.getElementById("recipeFilters"),
   anniversaryList: document.getElementById("anniversaryList"),
   notesBoard: document.getElementById("notesBoard"),
   modalBackdrop: document.getElementById("modalBackdrop"),
@@ -46,12 +49,22 @@ const els = {
   toast: document.getElementById("toast"),
 };
 
+function normalizeData(d) {
+  d.diaries = d.diaries || [];
+  d.wishes = d.wishes || [];
+  d.memories = d.memories || [];
+  d.anniversaries = d.anniversaries || [];
+  d.sweetNotes = d.sweetNotes || [];
+  d.recipes = d.recipes || [];
+  return d;
+}
+
 function loadData() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    if (saved) return normalizeData(JSON.parse(saved));
   } catch (_) {}
-  return structuredClone(SITE_DATA);
+  return normalizeData(structuredClone(SITE_DATA));
 }
 
 function saveData(options = {}) {
@@ -110,6 +123,7 @@ function renderAll() {
   renderDiaries();
   renderWishes();
   renderMemories();
+  renderRecipes();
   renderNotes();
   els.year.textContent = today.getFullYear();
 }
@@ -260,6 +274,62 @@ function renderMemories() {
     .join("");
 }
 
+function renderRecipes() {
+  const styles = [...new Set(data.recipes.map((r) => r.style).filter(Boolean))];
+  if (activeRecipeFilter !== "all" && !styles.includes(activeRecipeFilter)) {
+    activeRecipeFilter = "all";
+  }
+  els.recipeFilters.innerHTML = data.recipes.length
+    ? `<button class="${activeRecipeFilter === "all" ? "active" : ""}" data-action="filter-recipe" data-style="all">全部</button>` +
+      styles
+        .map(
+          (s) =>
+            `<button class="${activeRecipeFilter === s ? "active" : ""}" data-action="filter-recipe" data-style="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+        )
+        .join("")
+    : "";
+
+  const visible = data.recipes.filter((r) => activeRecipeFilter === "all" || r.style === activeRecipeFilter);
+
+  const empty = document.getElementById("recipeEmpty");
+  if (data.recipes.length === 0) {
+    empty.hidden = false;
+    empty.textContent = "还没有食谱，点右上角记录第一道一起做的菜吧～";
+  } else if (visible.length === 0) {
+    empty.hidden = false;
+    empty.textContent = "这个风格下还没有食谱～";
+  } else {
+    empty.hidden = true;
+  }
+
+  els.recipeGrid.innerHTML = visible
+    .map(
+      (item) => `
+      <article class="recipe-card" data-id="${item.id}">
+        ${
+          item.image
+            ? `<div class="recipe-photo"><img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" /></div>`
+            : `<div class="recipe-photo no-photo"><span>🍽</span></div>`
+        }
+        <div class="recipe-body">
+          <div class="recipe-top">
+            <h3>${escapeHtml(item.name)}</h3>
+            ${item.rating ? `<span class="recipe-rating">${"♥".repeat(item.rating)}</span>` : ""}
+          </div>
+          ${item.style ? `<span class="recipe-style">${escapeHtml(item.style)}</span>` : ""}
+          ${item.ingredients ? `<div class="recipe-block"><strong>食材</strong><p>${escapeHtml(item.ingredients)}</p></div>` : ""}
+          <div class="recipe-block"><strong>做法</strong><p>${escapeHtml(item.steps)}</p></div>
+          <div class="card-actions inline">
+            <button class="icon-btn" data-action="edit-recipe" data-id="${item.id}" aria-label="编辑">✎</button>
+            <button class="icon-btn danger" data-action="delete-recipe" data-id="${item.id}" aria-label="删除">×</button>
+          </div>
+        </div>
+      </article>
+    `
+    )
+    .join("");
+}
+
 function renderNotes() {
   document.getElementById("notesEmpty").hidden = data.sweetNotes.length > 0;
   els.notesBoard.innerHTML = data.sweetNotes
@@ -309,6 +379,18 @@ function openModal(title, fields, onSubmit) {
           </label>
         `;
       }
+      if (field.type === "image") {
+        const hasImg = !!field.value;
+        return `
+          <div class="field image-field">
+            <span>${field.label}</span>
+            <input type="file" accept="image/*" data-image-pick />
+            <img class="image-preview" src="${field.value || ""}" alt="预览" ${hasImg ? "" : "hidden"} />
+            <input type="hidden" name="${field.name}" value="${field.value || ""}" />
+            <button type="button" class="ghost-btn small-btn" data-image-clear ${hasImg ? "" : "hidden"}>移除图片</button>
+          </div>
+        `;
+      }
       return `
         <label class="field">
           <span>${field.label}</span>
@@ -317,9 +399,69 @@ function openModal(title, fields, onSubmit) {
       `;
     })
     .join("");
+  bindImageFields();
   els.modalBackdrop.hidden = false;
   const firstInput = els.modalForm.querySelector("input, textarea, select");
   if (firstInput) firstInput.focus();
+}
+
+function compressImage(file, maxSize = 1280, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          if (width >= height) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          } else {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function bindImageFields() {
+  els.modalForm.querySelectorAll("[data-image-pick]").forEach((input) => {
+    const wrap = input.closest(".image-field");
+    const preview = wrap.querySelector(".image-preview");
+    const hidden = wrap.querySelector("input[type=hidden]");
+    const clearBtn = wrap.querySelector("[data-image-clear]");
+    input.addEventListener("change", async () => {
+      const file = input.files[0];
+      if (!file) return;
+      try {
+        const dataUrl = await compressImage(file);
+        hidden.value = dataUrl;
+        preview.src = dataUrl;
+        preview.hidden = false;
+        clearBtn.hidden = false;
+      } catch (_) {
+        showToast("图片处理失败，请换一张");
+      }
+      input.value = "";
+    });
+    clearBtn.addEventListener("click", () => {
+      hidden.value = "";
+      preview.src = "";
+      preview.hidden = true;
+      clearBtn.hidden = true;
+    });
+  });
 }
 
 function closeModal() {
@@ -403,6 +545,23 @@ function noteFields(item = {}) {
   ];
 }
 
+function recipeFields(item = {}) {
+  return [
+    { label: "菜名", name: "name", value: item.name || "", required: true, placeholder: "比如：番茄炒蛋" },
+    { label: "风格 / 品味", name: "style", value: item.style || "", placeholder: "比如：中式家常 / 日式 / 微辣" },
+    {
+      label: "好吃程度",
+      name: "rating",
+      type: "select",
+      value: String(item.rating || 5),
+      options: [1, 2, 3, 4, 5].map((n) => ({ value: String(n), label: "♥".repeat(n) })),
+    },
+    { label: "食材", name: "ingredients", type: "textarea", value: item.ingredients || "", rows: 3, placeholder: "鸡蛋 2 个、番茄 2 个、盐少许..." },
+    { label: "做法", name: "steps", type: "textarea", value: item.steps || "", required: true, rows: 5, placeholder: "1. ...\n2. ..." },
+    { label: "成品图（可选，会自动压缩）", name: "image", type: "image", value: item.image || "" },
+  ];
+}
+
 function getFormValues(form) {
   const values = {};
   new FormData(form).forEach((val, key) => {
@@ -438,9 +597,7 @@ function importDataFile(file) {
       if (!parsed.settings || !Array.isArray(parsed.diaries)) {
         throw new Error("格式不正确");
       }
-      data = parsed;
-      if (!data.sweetNotes) data.sweetNotes = [];
-      if (!data.anniversaries) data.anniversaries = [];
+      data = normalizeData(parsed);
       saveData();
       renderAll();
       showToast("数据导入成功");
@@ -522,6 +679,23 @@ document.getElementById("addNote").addEventListener("click", () => {
   });
 });
 
+document.getElementById("addRecipe").addEventListener("click", () => {
+  openModal("添加食谱", recipeFields(), (values) => {
+    data.recipes.unshift({
+      id: uid("r"),
+      name: values.name,
+      style: values.style,
+      rating: Number(values.rating) || 0,
+      ingredients: values.ingredients,
+      steps: values.steps,
+      image: values.image || "",
+    });
+    saveData();
+    renderRecipes();
+    showToast("食谱已添加");
+  });
+});
+
 els.modalForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!modalContext) return;
@@ -553,6 +727,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "filter-recipe") {
+    activeRecipeFilter = btn.dataset.style;
+    renderRecipes();
+    return;
+  }
+
   if (action.startsWith("delete-")) {
     const labels = {
       diary: "这条日常记录",
@@ -560,6 +740,7 @@ document.addEventListener("click", (event) => {
       memory: "这条回忆",
       anniversary: "这个纪念日",
       note: "这张便签",
+      recipe: "这道食谱",
     };
     const type = action.replace("delete-", "");
     if (!confirm(`确定删除${labels[type]}吗？`)) return;
@@ -570,6 +751,7 @@ document.addEventListener("click", (event) => {
       memory: "memories",
       anniversary: "anniversaries",
       note: "sweetNotes",
+      recipe: "recipes",
     };
     data[keyMap[type]] = data[keyMap[type]].filter((item) => item.id !== id);
     saveData();
@@ -634,6 +816,22 @@ document.addEventListener("click", (event) => {
         saveData();
         renderNotes();
         showToast("便签已更新");
+      });
+    }
+    if (type === "recipe") {
+      const item = data.recipes.find((r) => r.id === id);
+      openModal("编辑食谱", recipeFields(item), (values) => {
+        Object.assign(item, {
+          name: values.name,
+          style: values.style,
+          rating: Number(values.rating) || 0,
+          ingredients: values.ingredients,
+          steps: values.steps,
+          image: values.image || "",
+        });
+        saveData();
+        renderRecipes();
+        showToast("食谱已更新");
       });
     }
   }
@@ -751,9 +949,7 @@ function parseDataText(text) {
   if (!parsed || !parsed.settings || !Array.isArray(parsed.diaries)) {
     throw new Error("云端数据格式不正确");
   }
-  if (!parsed.sweetNotes) parsed.sweetNotes = [];
-  if (!parsed.anniversaries) parsed.anniversaries = [];
-  return parsed;
+  return normalizeData(parsed);
 }
 
 function ghBase() {
