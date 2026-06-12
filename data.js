@@ -57,8 +57,8 @@ const SITE_DATA = {
   "anniversaries": [
     {
       "id": "a1",
-      "name": "在一起",
-      "date": "2025-03-24",
+      "name": "在一起周年",
+      "date": "2027-04-07",
       "yearly": true
     },
     {
@@ -80,5 +80,5 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781236558260
+  "_updatedAt": 1781237219581
 };
