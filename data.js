@@ -5,6 +5,14 @@ const SITE_DATA = {
   },
   "diaries": [
     {
+      "id": "dmqap5mheg6ba",
+      "date": "2026-04-19",
+      "kind": "date",
+      "title": "龙华寺祈愿",
+      "content": "龙华寺祈愿\n请香、绕塔、祈福、求手绳、吃素面",
+      "mood": "🌸🌸🌸🌸🌸"
+    },
+    {
       "id": "d1",
       "date": "2026-03-15",
       "kind": "date",
@@ -86,7 +94,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781254697146,
+  "_updatedAt": 1781254865426,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
