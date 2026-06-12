@@ -21,6 +21,7 @@
       <a href="#diary">日常</a>
       <a href="#anniversary">纪念日</a>
       <a href="#wishlist">心愿</a>
+      <a href="#recipes">食谱</a>
       <a href="#album">相册</a>
       <a href="#notes">便签</a>
     </nav>
@@ -161,6 +162,22 @@
 
       <div class="wish-list" id="wishList"></div>
       <p class="empty-hint" id="wishEmpty" hidden>心愿清单还是空的，写下第一件想一起做的事吧～</p>
+    </section>
+
+    <section class="recipe-section" id="recipes" aria-labelledby="recipeTitle">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <span class="tiny-icon heart-icon"></span>
+            <h2 id="recipeTitle">我们的食谱</h2>
+          </div>
+          <p>记录一起做过的不同风格的饭，存下食材、做法和成品图。</p>
+        </div>
+        <button class="primary-btn" id="addRecipe">+ 添加食谱</button>
+      </div>
+      <div class="filters" id="recipeFilters" aria-label="食谱风格筛选"></div>
+      <div class="recipe-grid" id="recipeGrid"></div>
+      <p class="empty-hint" id="recipeEmpty" hidden>还没有食谱，点右上角记录第一道一起做的菜吧～</p>
     </section>
 
     <section class="album-section" id="album" aria-labelledby="albumTitle">
