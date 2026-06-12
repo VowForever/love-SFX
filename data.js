@@ -40,7 +40,7 @@ const SITE_DATA = {
     },
     {
       "id": "wmqafo7fqc3bh",
-      "title": "一起去苏州",
+      "title": "一起去苏州旅行",
       "done": false,
       "note": "6月底"
     }
@@ -72,7 +72,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781260931900,
+  "_updatedAt": 1781261226855,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
