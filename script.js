@@ -217,6 +217,7 @@ function renderDiaries() {
             </div>
             <h3>${escapeHtml(item.title)}</h3>
             <p>${escapeHtml(item.content)}</p>
+            ${item.image ? `<div class="diary-photo"><img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" /></div>` : ""}
             <div class="card-actions inline">
               <button class="icon-btn" data-action="edit-diary" data-id="${item.id}" aria-label="编辑">✎</button>
               <button class="icon-btn danger" data-action="delete-diary" data-id="${item.id}" aria-label="删除">×</button>
@@ -492,6 +493,7 @@ function diaryFields(item = {}) {
     { label: "标题", name: "title", value: item.title || "", required: true, placeholder: "给这一天起个名字" },
     { label: "心情", name: "mood", value: item.mood || "🌸", placeholder: "一个 emoji，比如 🌸" },
     { label: "内容", name: "content", type: "textarea", value: item.content || "", required: true, placeholder: "写下今天发生的事..." },
+    { label: "照片（可选，会自动压缩）", name: "image", type: "image", value: item.image || "" },
   ];
 }
 
@@ -623,6 +625,7 @@ document.getElementById("addDiary").addEventListener("click", () => {
       title: values.title,
       content: values.content,
       mood: values.mood,
+      image: values.image || "",
     });
     saveData();
     renderDiaries();
@@ -778,6 +781,7 @@ document.addEventListener("click", (event) => {
           title: values.title,
           content: values.content,
           mood: values.mood,
+          image: values.image || "",
         });
         saveData();
         renderDiaries();
