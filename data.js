@@ -62,14 +62,7 @@ const SITE_DATA = {
       "theme": "train"
     }
   ],
-  "anniversaries": [
-    {
-      "id": "a1",
-      "name": "在一起周年",
-      "date": "2027-04-07",
-      "yearly": true
-    }
-  ],
+  "anniversaries": [],
   "sweetNotes": [
     {
       "id": "n1",
@@ -82,7 +75,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781255924496,
+  "_updatedAt": 1781258952743,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
