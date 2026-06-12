@@ -30,12 +30,6 @@ const SITE_DATA = {
       "note": "计划中"
     },
     {
-      "id": "w2",
-      "title": "做一本旅行手账",
-      "done": false,
-      "note": "计划中"
-    },
-    {
       "id": "wmqafo7fqc3bh",
       "title": "一起去苏州",
       "done": false,
@@ -75,7 +69,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781258952743,
+  "_updatedAt": 1781258969785,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
