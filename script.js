@@ -1123,3 +1123,10 @@ els.ghDisconnect.addEventListener("click", () => {
 
 renderAll();
 cloudInit();
+
+// 仅在普通浏览器注册 Service Worker，原生 App(Capacitor)内跳过
+if ("serviceWorker" in navigator && !window.Capacitor && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
