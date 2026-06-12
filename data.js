@@ -1,7 +1,7 @@
 const SITE_DATA = {
   "settings": {
     "startDate": "2026-04-07",
-    "subtitle": "从 2025 年 03 月 24 日开始收藏粉色回忆"
+    "subtitle": "从 2026 年 04 月 7 日开始收藏粉色回忆"
   },
   "diaries": [
     {
@@ -80,5 +80,5 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781236532485
+  "_updatedAt": 1781236551531
 };
