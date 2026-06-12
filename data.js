@@ -30,22 +30,7 @@ const SITE_DATA = {
       "mood": "🌸🌸🌸🌸🌸"
     }
   ],
-  "wishes": [
-    {
-      "id": "w1",
-      "title": "一起去海边看日出日落",
-      "done": false,
-      "doneAt": null,
-      "note": "计划中",
-      "targetDate": ""
-    },
-    {
-      "id": "wmqafo7fqc3bh",
-      "title": "一起去苏州旅行",
-      "done": false,
-      "note": "6月底"
-    }
-  ],
+  "wishes": [],
   "memories": [
     {
       "id": "m2",
@@ -73,7 +58,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781270353419,
+  "_updatedAt": 1781271120947,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
