@@ -1,7 +1,7 @@
 const SITE_DATA = {
   "settings": {
     "startDate": "2026-04-07",
-    "subtitle": "从 2026 年 04 月 7 日开始收藏粉色回忆"
+    "subtitle": "和世界上最美的小雪在一起的粉色回忆"
   },
   "diaries": [
     {
@@ -63,7 +63,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781258990640,
+  "_updatedAt": 1781260283683,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
