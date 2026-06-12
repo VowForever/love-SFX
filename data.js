@@ -32,6 +32,12 @@ const SITE_DATA = {
       "title": "周末一起做早餐",
       "done": false,
       "note": "这个月完成"
+    },
+    {
+      "id": "wmqafo7fqc3bh",
+      "title": "一起去苏州",
+      "done": false,
+      "note": "6月底"
     }
   ],
   "memories": [
@@ -80,5 +86,5 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781237259698
+  "_updatedAt": 1781238936230
 };
