@@ -650,7 +650,7 @@ function nextDayCompact(dateStr) {
   return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function downloadICS({ title, date, time, note, yearly, remindMinutes }) {
+function buildICS({ title, date, time, note, yearly, remindMinutes }) {
   const compactDate = date.replace(/-/g, "");
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const lines = [
@@ -679,14 +679,44 @@ function downloadICS({ title, date, time, note, yearly, remindMinutes }) {
     lines.push("BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsEscape(title)}`, `TRIGGER:-PT${remindMinutes}M`, "END:VALARM");
   }
   lines.push("END:VEVENT", "END:VCALENDAR");
+  return lines.join("\r\n");
+}
 
-  const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+function isNativeApp() {
+  return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === "function" && window.Capacitor.isNativePlatform());
+}
+
+async function nativeOpenICS(icsText, title) {
+  const plugins = window.Capacitor.Plugins || {};
+  const fs = plugins.Filesystem;
+  const opener = plugins.FileOpener;
+  if (!fs || !opener) throw new Error("plugin-missing");
+  const safe = (title || "event").replace(/[\\/:*?"<>|]+/g, "_").slice(0, 60);
+  const res = await fs.writeFile({
+    path: `${safe}-${Date.now()}.ics`,
+    data: icsText,
+    directory: "CACHE",
+    encoding: "utf8",
+  });
+  await opener.open({ filePath: res.uri, contentType: "text/calendar" });
+}
+
+function downloadICS(opts) {
+  const icsText = buildICS(opts);
+  if (isNativeApp()) {
+    nativeOpenICS(icsText, opts.title)
+      .then(() => showToast("已打开，确认即可加入系统日历"))
+      .catch(() => showToast("打开日历失败，请重试"));
+    return;
+  }
+  const blob = new Blob([icsText], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `${title}.ics`;
+  link.download = `${opts.title}.ics`;
   link.click();
   URL.revokeObjectURL(url);
+  showToast("已生成日历文件，打开即可加入系统日历");
 }
 
 function exportDataFile() {
@@ -886,7 +916,6 @@ document.addEventListener("click", (event) => {
     }
     if (opts) {
       downloadICS(opts);
-      showToast("已生成日历文件，打开即可加入系统日历");
     }
     return;
   }
