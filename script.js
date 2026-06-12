@@ -40,6 +40,7 @@ const els = {
   recipeGrid: document.getElementById("recipeGrid"),
   recipeFilters: document.getElementById("recipeFilters"),
   anniversaryList: document.getElementById("anniversaryList"),
+  scheduleList: document.getElementById("scheduleList"),
   notesBoard: document.getElementById("notesBoard"),
   modalBackdrop: document.getElementById("modalBackdrop"),
   modalTitle: document.getElementById("modalTitle"),
@@ -54,6 +55,7 @@ function normalizeData(d) {
   d.wishes = d.wishes || [];
   d.memories = d.memories || [];
   d.anniversaries = d.anniversaries || [];
+  d.schedules = d.schedules || [];
   d.sweetNotes = d.sweetNotes || [];
   d.recipes = d.recipes || [];
   return d;
@@ -120,6 +122,7 @@ function showToast(message) {
 function renderAll() {
   renderHero();
   renderAnniversaries();
+  renderSchedules();
   renderDiaries();
   renderWishes();
   renderMemories();
@@ -183,8 +186,43 @@ function renderAnniversaries() {
             <div class="progress"><i style="width:${progress}%"></i></div>
           </div>
           <div class="card-actions">
+            <button class="ghost-btn small-btn" data-action="calendar" data-type="anniversary" data-id="${item.id}">加入日历</button>
             <button class="icon-btn" data-action="edit-anniversary" data-id="${item.id}" aria-label="编辑">✎</button>
             <button class="icon-btn danger" data-action="delete-anniversary" data-id="${item.id}" aria-label="删除">×</button>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+const REMIND_LABELS = { 0: "准时提醒", 15: "提前 15 分钟", 60: "提前 1 小时", 1440: "提前 1 天" };
+
+function renderSchedules() {
+  const sorted = [...data.schedules].sort((a, b) =>
+    `${a.date}${a.time || ""}`.localeCompare(`${b.date}${b.time || ""}`)
+  );
+  document.getElementById("scheduleEmpty").hidden = sorted.length > 0;
+  els.scheduleList.innerHTML = sorted
+    .map((item) => {
+      const daysLeft = daysBetween(today, parseDate(item.date));
+      const when = daysLeft < 0 ? "已过" : daysLeft === 0 ? "就是今天！" : `还有 <strong>${daysLeft}</strong> 天`;
+      const remind = item.remind != null ? ` · ${REMIND_LABELS[item.remind] || "提醒"}` : "";
+      return `
+        <article class="schedule-card${daysLeft < 0 ? " past" : ""}" data-id="${item.id}">
+          <div class="schedule-date">
+            <strong>${formatDateDot(item.date)}</strong>
+            ${item.time ? `<span>${escapeHtml(item.time)}</span>` : ""}
+          </div>
+          <div class="schedule-info">
+            <h3>${escapeHtml(item.title)}</h3>
+            <p>${when}${remind}</p>
+            ${item.note ? `<small>${escapeHtml(item.note)}</small>` : ""}
+          </div>
+          <div class="card-actions">
+            <button class="ghost-btn small-btn" data-action="calendar" data-type="schedule" data-id="${item.id}">加入日历</button>
+            <button class="icon-btn" data-action="edit-schedule" data-id="${item.id}" aria-label="编辑">✎</button>
+            <button class="icon-btn danger" data-action="delete-schedule" data-id="${item.id}" aria-label="删除">×</button>
           </div>
         </article>
       `;
@@ -245,8 +283,9 @@ function renderWishes() {
           <span></span>
         </label>
         <strong>${escapeHtml(item.title)}</strong>
-        <small>${escapeHtml(item.note || (item.done ? "已完成" : "计划中"))}</small>
+        <small>${escapeHtml(item.note || (item.done ? "已完成" : "计划中"))}${item.targetDate ? ` · 🗓 ${formatDateDot(item.targetDate)}` : ""}</small>
         <div class="card-actions">
+          ${item.targetDate ? `<button class="ghost-btn small-btn" data-action="calendar" data-type="wish" data-id="${item.id}">加入日历</button>` : ""}
           <button class="icon-btn" data-action="edit-wish" data-id="${item.id}" aria-label="编辑">✎</button>
           <button class="icon-btn danger" data-action="delete-wish" data-id="${item.id}" aria-label="删除">×</button>
         </div>
@@ -501,6 +540,29 @@ function wishFields(item = {}) {
   return [
     { label: "心愿", name: "title", value: item.title || "", required: true, placeholder: "想一起做的事" },
     { label: "备注", name: "note", value: item.note || "", placeholder: "比如：这个月完成" },
+    { label: "目标日期（可选，填了可加入日历）", name: "targetDate", type: "date", value: item.targetDate || "" },
+  ];
+}
+
+function scheduleFields(item = {}) {
+  return [
+    { label: "标题", name: "title", value: item.title || "", required: true, placeholder: "比如：一起看电影" },
+    { label: "日期", name: "date", type: "date", value: item.date || today.toISOString().slice(0, 10), required: true },
+    { label: "时间（可选）", name: "time", type: "time", value: item.time || "" },
+    {
+      label: "提醒",
+      name: "remind",
+      type: "select",
+      value: item.remind != null ? String(item.remind) : "60",
+      options: [
+        { value: "", label: "不提醒" },
+        { value: "0", label: "准时提醒" },
+        { value: "15", label: "提前 15 分钟" },
+        { value: "60", label: "提前 1 小时" },
+        { value: "1440", label: "提前 1 天" },
+      ],
+    },
+    { label: "备注（可选）", name: "note", type: "textarea", value: item.note || "", rows: 3, placeholder: "想补充的细节..." },
   ];
 }
 
@@ -578,6 +640,55 @@ function getFormValues(form) {
   return values;
 }
 
+function icsEscape(text) {
+  return String(text).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+}
+
+function nextDayCompact(dateStr) {
+  const d = parseDate(dateStr);
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function downloadICS({ title, date, time, note, yearly, remindMinutes }) {
+  const compactDate = date.replace(/-/g, "");
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//lovejournal//CN",
+    "CALSCALE:GREGORIAN",
+    "BEGIN:VEVENT",
+    `UID:${Date.now()}-${Math.random().toString(36).slice(2)}@lovejournal`,
+    `DTSTAMP:${stamp}`,
+  ];
+  if (time) {
+    const [hh, mm] = time.split(":");
+    const start = `${compactDate}T${hh}${mm}00`;
+    const endDate = new Date(parseDate(date));
+    endDate.setHours(Number(hh) + 1, Number(mm));
+    const end = `${compactDate}T${String(endDate.getHours()).padStart(2, "0")}${mm}00`;
+    lines.push(`DTSTART:${start}`, `DTEND:${end}`);
+  } else {
+    lines.push(`DTSTART;VALUE=DATE:${compactDate}`, `DTEND;VALUE=DATE:${nextDayCompact(date)}`);
+  }
+  if (yearly) lines.push("RRULE:FREQ=YEARLY");
+  lines.push(`SUMMARY:${icsEscape(title)}`);
+  if (note) lines.push(`DESCRIPTION:${icsEscape(note)}`);
+  if (remindMinutes != null) {
+    lines.push("BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsEscape(title)}`, `TRIGGER:-PT${remindMinutes}M`, "END:VALARM");
+  }
+  lines.push("END:VEVENT", "END:VCALENDAR");
+
+  const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${title}.ics`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function exportDataFile() {
   const content = `const SITE_DATA = ${JSON.stringify(data, null, 2)};\n`;
   const blob = new Blob([content], { type: "text/javascript" });
@@ -640,6 +751,7 @@ document.getElementById("addWish").addEventListener("click", () => {
       title: values.title,
       done: false,
       note: values.note || "新加入",
+      targetDate: values.targetDate || "",
     });
     saveData();
     renderWishes();
@@ -659,6 +771,22 @@ document.getElementById("addMemory").addEventListener("click", () => {
     saveData();
     renderMemories();
     showToast("回忆已添加");
+  });
+});
+
+document.getElementById("addSchedule").addEventListener("click", () => {
+  openModal("添加日程", scheduleFields(), (values) => {
+    data.schedules.push({
+      id: uid("s"),
+      title: values.title,
+      date: values.date,
+      time: values.time || "",
+      remind: values.remind === "" ? null : Number(values.remind),
+      note: values.note || "",
+    });
+    saveData();
+    renderSchedules();
+    showToast("日程已添加");
   });
 });
 
@@ -743,12 +871,33 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "calendar") {
+    const type = btn.dataset.type;
+    let opts = null;
+    if (type === "schedule") {
+      const item = data.schedules.find((s) => s.id === id);
+      if (item) opts = { title: item.title, date: item.date, time: item.time, note: item.note, remindMinutes: item.remind };
+    } else if (type === "anniversary") {
+      const item = data.anniversaries.find((a) => a.id === id);
+      if (item) opts = { title: item.name, date: item.date, yearly: item.yearly, remindMinutes: 1440 };
+    } else if (type === "wish") {
+      const item = data.wishes.find((w) => w.id === id);
+      if (item && item.targetDate) opts = { title: item.title, date: item.targetDate, note: item.note, remindMinutes: 1440 };
+    }
+    if (opts) {
+      downloadICS(opts);
+      showToast("已生成日历文件，打开即可加入系统日历");
+    }
+    return;
+  }
+
   if (action.startsWith("delete-")) {
     const labels = {
       diary: "这条日常记录",
       wish: "这个心愿",
       memory: "这条回忆",
       anniversary: "这个纪念日",
+      schedule: "这个日程",
       note: "这张便签",
       recipe: "这道食谱",
     };
@@ -760,6 +909,7 @@ document.addEventListener("click", (event) => {
       wish: "wishes",
       memory: "memories",
       anniversary: "anniversaries",
+      schedule: "schedules",
       note: "sweetNotes",
       recipe: "recipes",
     };
@@ -793,6 +943,7 @@ document.addEventListener("click", (event) => {
       openModal("编辑心愿", wishFields(item), (values) => {
         item.title = values.title;
         item.note = values.note;
+        item.targetDate = values.targetDate || "";
         saveData();
         renderWishes();
         showToast("心愿已更新");
@@ -818,6 +969,21 @@ document.addEventListener("click", (event) => {
         saveData();
         renderAnniversaries();
         showToast("纪念日已更新");
+      });
+    }
+    if (type === "schedule") {
+      const item = data.schedules.find((s) => s.id === id);
+      openModal("编辑日程", scheduleFields(item), (values) => {
+        Object.assign(item, {
+          title: values.title,
+          date: values.date,
+          time: values.time || "",
+          remind: values.remind === "" ? null : Number(values.remind),
+          note: values.note || "",
+        });
+        saveData();
+        renderSchedules();
+        showToast("日程已更新");
       });
     }
     if (type === "note") {
