@@ -261,7 +261,7 @@ function renderMemories() {
     .map(
       (item) => `
       <article class="memory-card ${item.theme}" data-id="${item.id}">
-        <span></span>
+        ${item.image ? `<div class="memory-photo"><img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" /></div>` : "<span></span>"}
         <strong>${escapeHtml(item.title)}</strong>
         <small>${escapeHtml(item.subtitle)}</small>
         <div class="card-actions inline">
@@ -512,6 +512,7 @@ function memoryFields(item = {}) {
         { value: "train", label: "旅行 · 车窗风景" },
       ],
     },
+    { label: "照片（可选，会自动压缩；不传则用上面的插画）", name: "image", type: "image", value: item.image || "" },
   ];
 }
 
@@ -645,6 +646,7 @@ document.getElementById("addMemory").addEventListener("click", () => {
       title: values.title,
       subtitle: values.subtitle,
       theme: values.theme,
+      image: values.image || "",
     });
     saveData();
     renderMemories();

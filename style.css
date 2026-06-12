@@ -1160,6 +1160,20 @@ body.night .settings-panel {
     linear-gradient(#83c8ed 0 48%, #f7d39b 49% 100%);
 }
 
+.memory-photo {
+  height: 150px;
+  border: 3px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.memory-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .memory-card {
   position: relative;
 }

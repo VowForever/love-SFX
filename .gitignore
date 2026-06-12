@@ -1,0 +1,5 @@
+# Capacitor 安卓打包工程(本地构建产物,不进仓库)
+/cap/
+
+# 临时目录
+/.cowork-temp/
