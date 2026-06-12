@@ -5,6 +5,15 @@ const SITE_DATA = {
   },
   "diaries": [
     {
+      "id": "dmqasrnekpxt5",
+      "date": "2026-06-13",
+      "kind": "beauty",
+      "title": "陪小雪去打水光",
+      "content": "暂未发生0.0",
+      "mood": "🌸🌸🌸🌸🌸",
+      "image": ""
+    },
+    {
       "id": "dmqap5mheg6ba",
       "date": "2026-04-19",
       "kind": "date",
@@ -63,7 +72,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781260299882,
+  "_updatedAt": 1781260931900,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
