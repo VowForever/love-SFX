@@ -72,7 +72,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781261779697,
+  "_updatedAt": 1781261908208,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
