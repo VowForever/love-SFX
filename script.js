@@ -1,5 +1,5 @@
 const STORAGE_KEY = "kitty-journal-data-v1";
-const KIND_LABELS = { date: "约会", food: "美食", travel: "旅行" };
+const KIND_LABELS = { date: "约会", food: "美食", travel: "旅行", movie: "影视", sport: "运动", shopping: "逛街", beauty: "美容", home: "宅家" };
 const MEMORY_THEMES = ["picnic", "movie", "train"];
 const NOTE_COLORS = ["pink", "lemon", "mint", "blue"];
 
@@ -482,6 +482,11 @@ function diaryFields(item = {}) {
         { value: "date", label: "约会" },
         { value: "food", label: "美食" },
         { value: "travel", label: "旅行" },
+        { value: "movie", label: "影视" },
+        { value: "sport", label: "运动" },
+        { value: "shopping", label: "逛街" },
+        { value: "beauty", label: "美容" },
+        { value: "home", label: "宅家" },
       ],
     },
     { label: "标题", name: "title", value: item.title || "", required: true, placeholder: "给这一天起个名字" },
