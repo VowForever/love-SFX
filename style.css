@@ -1479,7 +1479,7 @@ body.night .settings-panel {
 }
 
 .recipe-photo {
-  aspect-ratio: 4 / 3;
+  height: 200px;
   border-bottom: 3px solid var(--line);
   background: var(--pink);
 }
