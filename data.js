@@ -1,7 +1,7 @@
 const SITE_DATA = {
   "settings": {
     "startDate": "2026-04-07",
-    "subtitle": "和世界上最美的小雪在一起的粉色回忆"
+    "subtitle": "和世界上最美丽的小雪在一起的粉色回忆"
   },
   "diaries": [
     {
@@ -63,7 +63,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781260283683,
+  "_updatedAt": 1781260299882,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
