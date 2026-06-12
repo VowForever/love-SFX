@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kitty 风恋爱手账 | 两个人的小甜心日记</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page-doodles" aria-hidden="true">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="回到首页">
+      <span class="brand-mark">❤</span>
+      <span>Kitty 风恋爱手账</span>
+    </a>
+    <nav class="nav-pills" aria-label="页面导航">
+      <a class="active" href="#home">首页</a>
+      <a href="#diary">日常</a>
+      <a href="#anniversary">纪念日</a>
+      <a href="#wishlist">心愿</a>
+      <a href="#album">相册</a>
+      <a href="#notes">便签</a>
+    </nav>
+    <div class="header-actions">
+      <button class="round-action" id="settingsBtn" aria-label="设置与数据">⚙</button>
+      <button class="round-action" id="themeToggle" aria-label="切换主题">☾</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div class="hero-card">
+        <div class="profile-orbit">
+          <div class="avatar avatar-left">
+            <span class="face"></span>
+            <span class="hat"></span>
+          </div>
+          <div class="pulse-line"></div>
+          <div class="love-count">
+            <p>甜心陪伴第</p>
+            <strong id="daysTogether">—</strong>
+            <span>天</span>
+          </div>
+          <div class="pulse-line reverse"></div>
+          <div class="avatar avatar-right">
+            <span class="face"></span>
+            <span class="scarf"></span>
+          </div>
+        </div>
+        <p class="start-date" id="startDateText">—</p>
+      </div>
+
+      <section class="upcoming" id="anniversary" aria-labelledby="anniversaryTitle">
+        <div class="section-head compact">
+          <div class="section-title">
+            <span class="tiny-icon calendar-icon"></span>
+            <h2 id="anniversaryTitle">甜心纪念日</h2>
+          </div>
+          <button class="secondary-btn small-btn" id="addAnniversary">+ 添加</button>
+        </div>
+        <div class="anniversary-list" id="anniversaryList"></div>
+      </section>
+    </section>
+
+    <section class="quick-entry" aria-labelledby="quickTitle">
+      <div class="section-title">
+        <span class="tiny-icon star-icon"></span>
+        <h2 id="quickTitle">快速入口</h2>
+      </div>
+      <div class="entry-grid">
+        <a class="entry-card" href="#diary">
+          <span class="entry-illustration diary-illus"></span>
+          <strong>日常记录</strong>
+          <small>写下今天的粉色小事</small>
+        </a>
+        <a class="entry-card" href="#anniversary">
+          <span class="entry-illustration date-illus"></span>
+          <strong>纪念日</strong>
+          <small>重要日子系上蝴蝶结</small>
+        </a>
+        <a class="entry-card" href="#wishlist">
+          <span class="entry-illustration wish-illus"></span>
+          <strong>心愿清单</strong>
+          <small>一起慢慢打勾</small>
+        </a>
+        <a class="entry-card" href="#album">
+          <span class="entry-illustration album-illus"></span>
+          <strong>回忆相册</strong>
+          <small>存放甜甜瞬间</small>
+        </a>
+      </div>
+    </section>
+
+    <section class="story-panel">
+      <div class="scene-card river-scene" role="img" aria-label="两个人在河边散步的插画">
+        <span class="sun"></span>
+        <span class="cloud c1"></span>
+        <span class="cloud c2"></span>
+        <span class="bridge"></span>
+        <span class="walker one"></span>
+        <span class="walker two"></span>
+      </div>
+      <div class="scene-card road-scene" role="img" aria-label="两个人骑车去看海的插画">
+        <span class="skyline"></span>
+        <span class="petal p1"></span>
+        <span class="petal p2"></span>
+        <span class="scooter"></span>
+        <span class="balloon"></span>
+      </div>
+    </section>
+
+    <section class="diary-section" id="diary" aria-labelledby="diaryTitle">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <span class="tiny-icon camera-icon"></span>
+            <h2 id="diaryTitle">日常记录</h2>
+          </div>
+          <p>记录我们的普通日常，也把普通变成粉白色的可爱片段。</p>
+        </div>
+        <button class="primary-btn" id="addDiary">+ 添加记录</button>
+      </div>
+
+      <div class="stats-row">
+        <article><strong id="monthCount">0</strong><span>本月记录</span></article>
+        <article><strong id="totalCount">0</strong><span>总记录数</span></article>
+        <article><strong id="relatedDays">0</strong><span>相恋天数</span></article>
+      </div>
+
+      <div class="filters" aria-label="日常筛选">
+        <button class="active" data-filter="all">全部</button>
+        <button data-filter="date">约会</button>
+        <button data-filter="food">美食</button>
+        <button data-filter="travel">旅行</button>
+      </div>
+
+      <div class="timeline" id="timeline"></div>
+      <p class="empty-hint" id="diaryEmpty" hidden>还没有记录，点右上角添加第一条粉色日常吧～</p>
+    </section>
+
+    <section class="wish-section" id="wishlist" aria-labelledby="wishTitle">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <span class="tiny-icon sparkle-icon"></span>
+            <h2 id="wishTitle">心愿清单</h2>
+          </div>
+          <p>把想一起做的事放在这里，一件一件打勾。</p>
+        </div>
+        <button class="secondary-btn" id="addWish">+ 添加心愿</button>
+      </div>
+
+      <div class="wish-stats">
+        <article><strong id="wishTotal">0</strong><span>全部心愿</span></article>
+        <article><strong id="wishDone">0</strong><span>已完成</span></article>
+        <article><strong id="wishTodo">0</strong><span>待实现</span></article>
+      </div>
+
+      <div class="wish-list" id="wishList"></div>
+      <p class="empty-hint" id="wishEmpty" hidden>心愿清单还是空的，写下第一件想一起做的事吧～</p>
+    </section>
+
+    <section class="album-section" id="album" aria-labelledby="albumTitle">
+      <div class="section-head centered-head">
+        <div>
+          <div class="section-title centered">
+            <span class="tiny-icon heart-icon"></span>
+            <h2 id="albumTitle">继续创造属于我们的故事</h2>
+          </div>
+          <p class="album-copy">每一次出发、每一顿晚餐、每一个被记住的小瞬间，都可以贴上蝴蝶结认真收藏。</p>
+        </div>
+        <button class="secondary-btn" id="addMemory">+ 添加回忆</button>
+      </div>
+      <div class="album-grid" id="albumGrid"></div>
+      <p class="empty-hint" id="albumEmpty" hidden>相册还是空的，把第一个甜甜瞬间放进来吧～</p>
+    </section>
+
+    <section class="notes-section" id="notes" aria-labelledby="notesTitle">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <span class="tiny-icon sparkle-icon"></span>
+            <h2 id="notesTitle">甜蜜便签</h2>
+          </div>
+          <p>随手写下想对 TA 说的话，像贴在冰箱上的小纸条。</p>
+        </div>
+        <button class="primary-btn" id="addNote">+ 写便签</button>
+      </div>
+      <div class="notes-board" id="notesBoard"></div>
+      <p class="empty-hint" id="notesEmpty" hidden>还没有便签，写一句甜甜的话吧～</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>© <span id="year"></span> Kitty 风恋爱手账 · 保存两个人的甜心日常</p>
+    <p class="save-hint">内容自动保存在浏览器中 · 可在设置里导出为 <code>data.js</code></p>
+  </footer>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-header">
+        <h3 id="modalTitle">编辑</h3>
+        <button class="icon-btn" id="modalClose" aria-label="关闭">×</button>
+      </div>
+      <form class="modal-form" id="modalForm"></form>
+      <div class="modal-actions">
+        <button type="button" class="ghost-btn" id="modalCancel">取消</button>
+        <button type="submit" class="primary-btn" form="modalForm" id="modalSubmit">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <aside class="settings-panel" id="settingsPanel" hidden>
+    <div class="settings-header">
+      <h3>设置与数据</h3>
+      <button class="icon-btn" id="settingsClose" aria-label="关闭">×</button>
+    </div>
+    <div class="settings-body">
+      <label class="field">
+        <span>在一起的起始日期</span>
+        <input type="date" id="settingStartDate" />
+      </label>
+      <label class="field">
+        <span>首页副标题</span>
+        <input type="text" id="settingSubtitle" placeholder="从某天开始收藏粉色回忆" />
+      </label>
+      <div class="settings-divider"></div>
+      <p class="settings-label">GitHub 云同步</p>
+      <p class="settings-desc">连接后，增删改会自动写入仓库里的 <code>data.js</code>，换设备打开同一仓库即可同步。Token 只保存在本机浏览器。</p>
+      <div class="sync-status" id="syncStatus" data-state="off">未连接</div>
+      <label class="field">
+        <span>GitHub 用户名 / 组织</span>
+        <input type="text" id="ghOwner" placeholder="例如 yourname" autocomplete="off" />
+      </label>
+      <label class="field">
+        <span>仓库名</span>
+        <input type="text" id="ghRepo" placeholder="例如 love-journal" autocomplete="off" />
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>文件路径</span>
+          <input type="text" id="ghPath" placeholder="data.js" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>分支</span>
+          <input type="text" id="ghBranch" placeholder="main" autocomplete="off" />
+        </label>
+      </div>
+      <label class="field">
+        <span>访问 Token（fine-grained，仅授权该仓库 Contents 读写）</span>
+        <input type="password" id="ghToken" placeholder="github_pat_..." autocomplete="off" />
+      </label>
+      <div class="settings-actions">
+        <button class="secondary-btn" id="ghConnect">连接并拉取</button>
+        <button class="secondary-btn" id="ghPushNow">立即上传</button>
+        <button class="ghost-btn danger" id="ghDisconnect">断开</button>
+      </div>
+      <div class="settings-divider"></div>
+      <p class="settings-label">本地数据管理</p>
+      <p class="settings-desc">导出后把文件保存为项目里的 <code>data.js</code>，换电脑或清缓存后也能恢复。</p>
+      <div class="settings-actions">
+        <button class="secondary-btn" id="exportData">导出 data.js</button>
+        <label class="file-btn secondary-btn">
+          导入数据
+          <input type="file" id="importData" accept=".js,.json,application/json" hidden />
+        </label>
+        <button class="ghost-btn danger" id="resetData">恢复默认数据</button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
