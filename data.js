@@ -68,12 +68,6 @@ const SITE_DATA = {
       "name": "在一起周年",
       "date": "2027-04-07",
       "yearly": true
-    },
-    {
-      "id": "a2",
-      "name": "龙华寺祈愿",
-      "date": "2026-04-19",
-      "yearly": false
     }
   ],
   "sweetNotes": [
@@ -88,7 +82,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781255167957,
+  "_updatedAt": 1781255284571,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
