@@ -36,12 +36,6 @@ const SITE_DATA = {
       "note": "计划中"
     },
     {
-      "id": "w3",
-      "title": "周末一起做早餐",
-      "done": false,
-      "note": "这个月完成"
-    },
-    {
       "id": "wmqafo7fqc3bh",
       "title": "一起去苏州",
       "done": false,
@@ -94,7 +88,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781255124490,
+  "_updatedAt": 1781255167957,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
