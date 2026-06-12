@@ -86,6 +86,16 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781239011415,
-  "recipes": []
+  "_updatedAt": 1781239244364,
+  "recipes": [
+    {
+      "id": "rmqafut70a5h5",
+      "name": "茄辣西",
+      "style": "焖菜",
+      "rating": 5,
+      "ingredients": "",
+      "steps": "1. ",
+      "image": ""
+    }
+  ]
 };
