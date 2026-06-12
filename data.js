@@ -38,12 +38,6 @@ const SITE_DATA = {
   ],
   "memories": [
     {
-      "id": "m1",
-      "title": "湖边野餐",
-      "subtitle": "风把纸巾吹跑了三次",
-      "theme": "picnic"
-    },
-    {
       "id": "m2",
       "title": "深夜电影",
       "subtitle": "同一杯可乐喝到散场",
@@ -69,7 +63,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781258969785,
+  "_updatedAt": 1781258990640,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
