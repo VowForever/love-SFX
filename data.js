@@ -33,10 +33,11 @@ const SITE_DATA = {
   "wishes": [
     {
       "id": "w1",
-      "title": "一起去海边看日落",
+      "title": "一起去海边看日出日落",
       "done": false,
       "doneAt": null,
-      "note": "计划中"
+      "note": "计划中",
+      "targetDate": ""
     },
     {
       "id": "wmqafo7fqc3bh",
@@ -72,7 +73,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781262516423,
+  "_updatedAt": 1781270317388,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
