@@ -17,9 +17,9 @@ const SITE_DATA = {
     {
       "id": "w1",
       "title": "一起去海边看日落",
-      "done": true,
-      "doneAt": "2026-04-18",
-      "note": "完成于 2026.04.18"
+      "done": false,
+      "doneAt": null,
+      "note": "计划中"
     },
     {
       "id": "w2",
@@ -80,5 +80,5 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781237219581
+  "_updatedAt": 1781237259698
 };
