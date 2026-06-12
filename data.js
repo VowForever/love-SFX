@@ -30,12 +30,6 @@ const SITE_DATA = {
       "note": "计划中"
     },
     {
-      "id": "w2",
-      "title": "做一本旅行手账",
-      "done": false,
-      "note": "计划中"
-    },
-    {
       "id": "wmqafo7fqc3bh",
       "title": "一起去苏州",
       "done": false,
@@ -43,12 +37,6 @@ const SITE_DATA = {
     }
   ],
   "memories": [
-    {
-      "id": "m1",
-      "title": "湖边野餐",
-      "subtitle": "风把纸巾吹跑了三次",
-      "theme": "picnic"
-    },
     {
       "id": "m2",
       "title": "深夜电影",
@@ -62,14 +50,7 @@ const SITE_DATA = {
       "theme": "train"
     }
   ],
-  "anniversaries": [
-    {
-      "id": "a1",
-      "name": "在一起周年",
-      "date": "2027-04-07",
-      "yearly": true
-    }
-  ],
+  "anniversaries": [],
   "sweetNotes": [
     {
       "id": "n1",
@@ -82,7 +63,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781255924496,
+  "_updatedAt": 1781258990640,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
