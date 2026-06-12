@@ -1280,6 +1280,9 @@ body.night .settings-panel {
 
 .modal {
   width: min(480px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   border: 3px solid var(--line);
   border-radius: 12px;
   background: #fff;
@@ -1291,6 +1294,7 @@ body.night .settings-panel {
   justify-content: space-between;
   align-items: center;
   padding: 16px 18px 0;
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -1302,13 +1306,20 @@ body.night .settings-panel {
   display: grid;
   gap: 14px;
   padding: 16px 18px;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  padding: 0 18px 18px;
+  padding: 14px 18px;
+  flex-shrink: 0;
+  border-top: 2px solid var(--line);
+  background: #fff;
+  border-radius: 0 0 12px 12px;
 }
 
 .field {
