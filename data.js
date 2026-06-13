@@ -9,7 +9,7 @@ const SITE_DATA = {
       "date": "2026-06-13",
       "kind": "beauty",
       "title": "陪小雪去打水光",
-      "content": "暂未发生0.0",
+      "content": "1",
       "mood": "🌸🌸🌸🌸🌸",
       "image": ""
     },
@@ -53,7 +53,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781341111287,
+  "_updatedAt": 1781341144223,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
