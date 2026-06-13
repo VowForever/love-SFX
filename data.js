@@ -33,18 +33,6 @@ const SITE_DATA = {
   "wishes": [],
   "memories": [
     {
-      "id": "m2",
-      "title": "深夜电影",
-      "subtitle": "同一杯可乐喝到散场",
-      "theme": "movie"
-    },
-    {
-      "id": "m3",
-      "title": "短途旅行",
-      "subtitle": "车窗外都是新鲜感",
-      "theme": "train"
-    },
-    {
       "id": "mmqbqsmzn37vb",
       "title": "一碗绿豆汤",
       "subtitle": "淡淡的香气飘散在空气里，冰凉的绿豆汤",
@@ -65,7 +53,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781318084963,
+  "_updatedAt": 1781318091652,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
