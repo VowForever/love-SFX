@@ -58,7 +58,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781313666113,
+  "_updatedAt": 1781313824092,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
@@ -93,7 +93,7 @@ const SITE_DATA = {
       "id": "hmqbo5eykap7f",
       "type": "驱虫(体内外)",
       "name": "体外驱虫药",
-      "lastDate": "2026-03-01",
+      "lastDate": "2026-03-20",
       "cycleDays": 90,
       "note": ""
     }
