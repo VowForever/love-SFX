@@ -675,10 +675,11 @@ function openModal(title, fields, onSubmit) {
           </div>
         `;
       }
+      const numberAttrs = field.type === "number" ? ` step="${field.step || "any"}" inputmode="decimal"` : "";
       return `
         <label class="field">
           <span>${field.label}</span>
-          <input type="${field.type || "text"}" name="${field.name}" value="${escapeHtml(field.value || "")}" ${field.required ? "required" : ""} placeholder="${field.placeholder || ""}" />
+          <input type="${field.type || "text"}" name="${field.name}" value="${escapeHtml(field.value || "")}" ${field.required ? "required" : ""} placeholder="${field.placeholder || ""}"${numberAttrs} />
         </label>
       `;
     })
@@ -909,7 +910,7 @@ function catHealthFields(item = {}) {
     { label: "项目类型", name: "type", type: "select", value: item.type || "疫苗", options: CAT_HEALTH_TYPES.map((t) => ({ value: t, label: t })) },
     { label: "名称（可选）", name: "name", value: item.name || "", placeholder: "比如：妙三多 / 体内驱虫药" },
     { label: "上次时间", name: "lastDate", type: "date", value: item.lastDate || "", required: true },
-    { label: "周期（天，留空表示单次不重复）", name: "cycleDays", type: "number", value: item.cycleDays != null ? String(item.cycleDays) : "", placeholder: "比如：365 / 90 / 30" },
+    { label: "周期（天，留空表示单次不重复）", name: "cycleDays", type: "number", step: "1", value: item.cycleDays != null ? String(item.cycleDays) : "", placeholder: "比如：365 / 90 / 30" },
     { label: "备注（可选）", name: "note", type: "textarea", value: item.note || "", placeholder: "医院、批次、注意事项..." },
   ];
 }
