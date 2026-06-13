@@ -31,6 +31,7 @@
       <a href="#schedule">日程</a>
       <a href="#wishlist">心愿</a>
       <a href="#recipes">食谱</a>
+      <a href="#cat">嘻嘻</a>
       <a href="#album">相册</a>
       <a href="#notes">便签</a>
     </nav>
@@ -207,6 +208,33 @@
       <div class="filters" id="recipeFilters" aria-label="食谱风格筛选"></div>
       <div class="recipe-grid" id="recipeGrid"></div>
       <p class="empty-hint" id="recipeEmpty" hidden>还没有食谱，点右上角记录第一道一起做的菜吧～</p>
+    </section>
+
+    <section class="cat-section" id="cat" aria-labelledby="catTitle">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <span class="tiny-icon paw-icon"></span>
+            <h2 id="catTitle">猫主子嘻嘻</h2>
+          </div>
+          <p>记录嘻嘻的吃喝玩睡和每个调皮可爱的瞬间。</p>
+        </div>
+        <button class="primary-btn" id="addCat">+ 添加记录</button>
+      </div>
+      <div class="cat-profile" id="catProfile"></div>
+      <div class="cat-weight" id="catWeight"></div>
+      <div class="cat-sub-head">
+        <div class="section-title"><span class="tiny-icon heart-icon"></span><h3>健康提醒</h3></div>
+        <button class="secondary-btn small-btn" id="addCatHealth">+ 添加提醒</button>
+      </div>
+      <div class="cat-health" id="catHealthList"></div>
+      <p class="empty-hint" id="catHealthEmpty" hidden>还没有健康提醒，记下疫苗或驱虫的时间和周期，到期自动提醒～</p>
+      <div class="cat-sub-head">
+        <div class="section-title"><span class="tiny-icon paw-icon"></span><h3>成长记录</h3></div>
+      </div>
+      <div class="filters" id="catFilters" aria-label="嘻嘻状态筛选"></div>
+      <div class="recipe-grid cat-grid" id="catGrid"></div>
+      <p class="empty-hint" id="catEmpty" hidden>还没有嘻嘻的记录，点右上角记录第一条吧～</p>
     </section>
 
     <section class="album-section" id="album" aria-labelledby="albumTitle">

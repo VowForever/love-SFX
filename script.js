@@ -2,6 +2,17 @@ const STORAGE_KEY = "kitty-journal-data-v1";
 const KIND_LABELS = { date: "约会", food: "美食", travel: "旅行", movie: "影视", sport: "运动", shopping: "逛街", beauty: "美容", home: "宅家" };
 const MEMORY_THEMES = ["picnic", "movie", "train"];
 const NOTE_COLORS = ["pink", "lemon", "mint", "blue"];
+const CAT_MOODS = [
+  { value: "吃饭", emoji: "🍚" },
+  { value: "睡觉", emoji: "😴" },
+  { value: "玩耍", emoji: "🧶" },
+  { value: "调皮", emoji: "😼" },
+  { value: "撒娇", emoji: "🥰" },
+  { value: "看病", emoji: "🏥" },
+  { value: "出门", emoji: "🧳" },
+  { value: "其他", emoji: "🐾" },
+];
+const CAT_MOOD_EMOJI = Object.fromEntries(CAT_MOODS.map((m) => [m.value, m.emoji]));
 
 const msPerDay = 1000 * 60 * 60 * 24;
 const today = new Date();
@@ -9,6 +20,7 @@ const today = new Date();
 let data = loadData();
 let activeFilter = "all";
 let activeRecipeFilter = "all";
+let activeCatFilter = "all";
 let modalContext = null;
 
 const els = {
@@ -39,6 +51,11 @@ const els = {
   albumGrid: document.getElementById("albumGrid"),
   recipeGrid: document.getElementById("recipeGrid"),
   recipeFilters: document.getElementById("recipeFilters"),
+  catGrid: document.getElementById("catGrid"),
+  catFilters: document.getElementById("catFilters"),
+  catProfile: document.getElementById("catProfile"),
+  catWeight: document.getElementById("catWeight"),
+  catHealthList: document.getElementById("catHealthList"),
   anniversaryList: document.getElementById("anniversaryList"),
   scheduleList: document.getElementById("scheduleList"),
   notesBoard: document.getElementById("notesBoard"),
@@ -58,6 +75,9 @@ function normalizeData(d) {
   d.schedules = d.schedules || [];
   d.sweetNotes = d.sweetNotes || [];
   d.recipes = d.recipes || [];
+  d.cats = d.cats || [];
+  d.catProfile = d.catProfile || {};
+  d.catHealth = d.catHealth || [];
   return d;
 }
 
@@ -127,6 +147,7 @@ function renderAll() {
   renderWishes();
   renderMemories();
   renderRecipes();
+  renderCats();
   renderNotes();
   els.year.textContent = today.getFullYear();
 }
@@ -362,6 +383,229 @@ function renderRecipes() {
           <div class="card-actions inline">
             <button class="icon-btn" data-action="edit-recipe" data-id="${item.id}" aria-label="编辑">✎</button>
             <button class="icon-btn danger" data-action="delete-recipe" data-id="${item.id}" aria-label="删除">×</button>
+          </div>
+        </div>
+      </article>
+    `
+    )
+    .join("");
+}
+
+function catAge(birthday) {
+  if (!birthday) return "";
+  const b = parseDate(birthday);
+  let months = (today.getFullYear() - b.getFullYear()) * 12 + (today.getMonth() - b.getMonth());
+  if (today.getDate() < b.getDate()) months -= 1;
+  if (months < 0) return "";
+  const y = Math.floor(months / 12);
+  const m = months % 12;
+  if (y <= 0) return `${m} 个月`;
+  return m ? `${y} 岁 ${m} 个月` : `${y} 岁`;
+}
+
+const CAT_BLUEWHITE_SVG = `
+    <svg class="cat-doodle" viewBox="0 0 64 64" role="img" aria-label="蓝白猫头像" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 22 L19 6 L31 19 Z" fill="#8fa6bd"/>
+      <path d="M51 22 L45 6 L33 19 Z" fill="#8fa6bd"/>
+      <path d="M18 18 L21 9 L27 17 Z" fill="#f3b6c4"/>
+      <path d="M46 18 L43 9 L37 17 Z" fill="#f3b6c4"/>
+      <circle cx="32" cy="35" r="21" fill="#8fa6bd"/>
+      <path d="M32 15 C25 24 24 31 25 38 C26 50 38 50 39 38 C40 31 39 24 32 15 Z" fill="#ffffff"/>
+      <ellipse cx="32" cy="43" rx="13" ry="9.5" fill="#ffffff"/>
+      <ellipse cx="23" cy="32" rx="4" ry="5" fill="#e7a23a"/>
+      <ellipse cx="41" cy="32" rx="4" ry="5" fill="#e7a23a"/>
+      <ellipse cx="23" cy="33" rx="1.7" ry="3.6" fill="#3a2f28"/>
+      <ellipse cx="41" cy="33" rx="1.7" ry="3.6" fill="#3a2f28"/>
+      <path d="M29 39 L35 39 L32 43 Z" fill="#ef8fa0"/>
+      <path d="M32 43 Q32 46 28 46" fill="none" stroke="#cf93a6" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M32 43 Q32 46 36 46" fill="none" stroke="#cf93a6" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>`;
+
+function catAvatarMarkup(avatar) {
+  return avatar && (avatar.startsWith("data:") || avatar.startsWith("http"))
+    ? `<img src="${avatar}" alt="嘻嘻" />`
+    : CAT_BLUEWHITE_SVG;
+}
+
+function renderCatProfile() {
+  const p = data.catProfile || {};
+  const lines = [];
+  if (p.breed) lines.push(`<span>${escapeHtml(p.breed)}</span>`);
+  const age = catAge(p.birthday);
+  if (age) lines.push(`<span>${age}</span>`);
+  if (p.weight) lines.push(`<span>${escapeHtml(String(p.weight))} kg</span>`);
+  els.catProfile.innerHTML = `
+    <div class="cat-avatar">${catAvatarMarkup(p.avatar)}</div>
+    <div class="cat-info">
+      <h3>${escapeHtml(p.name || "嘻嘻")}</h3>
+      <div class="cat-meta">${lines.join("") || "<span>点右边铅笔，填上嘻嘻的小档案～</span>"}</div>
+    </div>
+    <button class="icon-btn" data-action="edit-cat-profile" aria-label="编辑档案">✎</button>
+  `;
+}
+
+const CAT_HEALTH_TYPES = ["疫苗", "体内驱虫", "体外驱虫", "驱虫(体内外)", "体检", "其他"];
+
+function renderCatWeight() {
+  const pts = data.cats
+    .filter((c) => c.date && c.weight != null && !isNaN(Number(c.weight)))
+    .map((c) => ({ date: c.date, w: Number(c.weight) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (pts.length < 2) {
+    els.catWeight.innerHTML = `<div class="cat-weight-empty">记两条以上带体重的记录，这里就会出现嘻嘻的体重变化曲线～</div>`;
+    return;
+  }
+  const ws = pts.map((p) => p.w);
+  const min = Math.min(...ws);
+  const max = Math.max(...ws);
+  const span = max - min || 1;
+  const W = 300;
+  const H = 96;
+  const padX = 12;
+  const padY = 16;
+  const innerW = W - padX * 2;
+  const innerH = H - padY * 2;
+  const coords = pts.map((p, i) => ({
+    x: padX + (i / (pts.length - 1)) * innerW,
+    y: padY + innerH - ((p.w - min) / span) * innerH,
+    w: p.w,
+  }));
+  const line = coords.map((c, i) => `${i ? "L" : "M"}${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(" ");
+  const area =
+    `M${coords[0].x.toFixed(1)} ${(H - padY).toFixed(1)} ` +
+    coords.map((c) => `L${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(" ") +
+    ` L${coords[coords.length - 1].x.toFixed(1)} ${(H - padY).toFixed(1)} Z`;
+  const dots = coords.map((c) => `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="2.6" fill="#ff6f91"/>`).join("");
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  const diff = last.w - first.w;
+  const trend = diff > 0 ? `↑ 重了 ${diff.toFixed(1)} kg` : diff < 0 ? `↓ 轻了 ${Math.abs(diff).toFixed(1)} kg` : "和最初持平";
+  els.catWeight.innerHTML = `
+    <div class="cat-weight-head">
+      <span class="cat-weight-title">⚖ 体重曲线</span>
+      <span class="cat-weight-now">最新 ${last.w} kg · ${trend}</span>
+    </div>
+    <svg class="cat-weight-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="嘻嘻体重变化曲线">
+      <path d="${area}" fill="rgba(255,143,171,0.16)" />
+      <path d="${line}" fill="none" stroke="#ff6f91" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      ${dots}
+    </svg>
+    <div class="cat-weight-axis"><span>${formatDateDot(first.date)} · ${first.w}kg</span><span>${formatDateDot(last.date)} · ${last.w}kg</span></div>
+  `;
+}
+
+function catHealthInfo(item) {
+  if (!item.lastDate) return { state: "none", nextDate: null };
+  if (!item.cycleDays) return { state: "done", nextDate: null };
+  const next = parseDate(item.lastDate);
+  next.setDate(next.getDate() + Number(item.cycleDays));
+  const nextStr = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+  const daysLeft = daysBetween(today, next);
+  let state = "ok";
+  if (daysLeft < 0) state = "overdue";
+  else if (daysLeft <= 14) state = "soon";
+  return { state, daysLeft, nextDate: nextStr };
+}
+
+function renderCatHealth() {
+  const list = data.catHealth || [];
+  document.getElementById("catHealthEmpty").hidden = list.length > 0;
+  const rows = list.map((it) => ({ it, info: catHealthInfo(it) }));
+  rows.sort((a, b) => {
+    const ra = a.info.nextDate ? 0 : 1;
+    const rb = b.info.nextDate ? 0 : 1;
+    if (ra !== rb) return ra - rb;
+    if (a.info.nextDate && b.info.nextDate) return a.info.daysLeft - b.info.daysLeft;
+    return 0;
+  });
+  els.catHealthList.innerHTML = rows
+    .map(({ it, info }) => {
+      let cls = info.state;
+      let badge = "未设时间";
+      if (info.state === "overdue") badge = `已过期 ${Math.abs(info.daysLeft)} 天`;
+      else if (info.state === "soon") badge = `还有 ${info.daysLeft} 天`;
+      else if (info.state === "ok") badge = `还有 ${info.daysLeft} 天`;
+      else if (info.state === "done") badge = "单次 · 已完成";
+      return `
+      <article class="health-card ${cls}" data-id="${it.id}">
+        <div class="health-main">
+          <div class="health-top">
+            <strong>${escapeHtml(it.name || it.type)}</strong>
+            <span class="health-badge ${cls}">${badge}</span>
+          </div>
+          <div class="health-meta">
+            <span>${escapeHtml(it.type)}</span>
+            ${it.lastDate ? `<span>上次 ${formatDateDot(it.lastDate)}</span>` : ""}
+            ${info.nextDate ? `<span>下次 ${formatDateDot(info.nextDate)}</span>` : ""}
+            ${it.cycleDays ? `<span>每 ${escapeHtml(String(it.cycleDays))} 天</span>` : ""}
+          </div>
+          ${it.note ? `<p class="health-note">${escapeHtml(it.note)}</p>` : ""}
+        </div>
+        <div class="health-actions">
+          ${info.nextDate ? `<button class="ghost-btn small-btn" data-action="calendar" data-type="cathealth" data-id="${it.id}">加入日历</button>` : ""}
+          <button class="icon-btn" data-action="edit-cathealth" data-id="${it.id}" aria-label="编辑">✎</button>
+          <button class="icon-btn danger" data-action="delete-cathealth" data-id="${it.id}" aria-label="删除">×</button>
+        </div>
+      </article>`;
+    })
+    .join("");
+}
+
+function renderCats() {
+  renderCatProfile();
+  renderCatWeight();
+  renderCatHealth();
+  const moods = [...new Set(data.cats.map((c) => c.mood).filter(Boolean))];
+  if (activeCatFilter !== "all" && !moods.includes(activeCatFilter)) {
+    activeCatFilter = "all";
+  }
+  els.catFilters.innerHTML = data.cats.length
+    ? `<button class="${activeCatFilter === "all" ? "active" : ""}" data-action="filter-cat" data-mood="all">全部</button>` +
+      moods
+        .map(
+          (m) =>
+            `<button class="${activeCatFilter === m ? "active" : ""}" data-action="filter-cat" data-mood="${escapeHtml(m)}">${CAT_MOOD_EMOJI[m] || "🐾"} ${escapeHtml(m)}</button>`
+        )
+        .join("")
+    : "";
+
+  const visible = [...data.cats]
+    .filter((c) => activeCatFilter === "all" || c.mood === activeCatFilter)
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
+  const empty = document.getElementById("catEmpty");
+  if (data.cats.length === 0) {
+    empty.hidden = false;
+    empty.textContent = "还没有嘻嘻的记录，点右上角记录第一条吧～";
+  } else if (visible.length === 0) {
+    empty.hidden = false;
+    empty.textContent = "这个状态下还没有记录～";
+  } else {
+    empty.hidden = true;
+  }
+
+  els.catGrid.innerHTML = visible
+    .map(
+      (item) => `
+      <article class="recipe-card cat-card" data-id="${item.id}">
+        ${
+          item.image
+            ? `<div class="recipe-photo"><img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" /></div>`
+            : `<div class="recipe-photo no-photo"><span>🐾</span></div>`
+        }
+        <div class="recipe-body">
+          <div class="recipe-top">
+            <h3>${escapeHtml(item.title)}</h3>
+            ${item.mood ? `<span class="recipe-style">${CAT_MOOD_EMOJI[item.mood] || "🐾"} ${escapeHtml(item.mood)}</span>` : ""}
+          </div>
+          <div class="cat-tags">
+            ${item.date ? `<span class="cat-tag">📅 ${formatDateDot(item.date)}</span>` : ""}
+            ${item.weight ? `<span class="cat-tag">⚖ ${escapeHtml(String(item.weight))} kg</span>` : ""}
+          </div>
+          ${item.content ? `<div class="recipe-block"><p>${escapeHtml(item.content)}</p></div>` : ""}
+          <div class="card-actions inline">
+            <button class="icon-btn" data-action="edit-cat" data-id="${item.id}" aria-label="编辑">✎</button>
+            <button class="icon-btn danger" data-action="delete-cat" data-id="${item.id}" aria-label="删除">×</button>
           </div>
         </div>
       </article>
@@ -632,6 +876,44 @@ function recipeFields(item = {}) {
   ];
 }
 
+function catFields(item = {}) {
+  const date = item.date || today.toISOString().slice(0, 10);
+  return [
+    { label: "标题", name: "title", value: item.title || "", required: true, placeholder: "比如：嘻嘻今天拆家了" },
+    { label: "日期", name: "date", type: "date", value: date, required: true },
+    {
+      label: "状态",
+      name: "mood",
+      type: "select",
+      value: item.mood || "玩耍",
+      options: CAT_MOODS.map((m) => ({ value: m.value, label: `${m.emoji} ${m.value}` })),
+    },
+    { label: "体重（kg，可选）", name: "weight", type: "number", value: item.weight != null ? String(item.weight) : "", placeholder: "比如：4.2" },
+    { label: "内容", name: "content", type: "textarea", value: item.content || "", rows: 3, placeholder: "记录嘻嘻今天的小事..." },
+    { label: "照片（可选，会自动压缩）", name: "image", type: "image", value: item.image || "" },
+  ];
+}
+
+function catProfileFields(p = {}) {
+  return [
+    { label: "名字", name: "name", value: p.name || "嘻嘻", placeholder: "嘻嘻" },
+    { label: "头像照片（可选，不传则用蓝白猫卡通头像）", name: "avatar", type: "image", value: (p.avatar && (p.avatar.startsWith("data:") || p.avatar.startsWith("http"))) ? p.avatar : "" },
+    { label: "生日（可选）", name: "birthday", type: "date", value: p.birthday || "" },
+    { label: "品种（可选）", name: "breed", value: p.breed || "", placeholder: "比如：英短蓝猫" },
+    { label: "当前体重（kg，可选）", name: "weight", type: "number", value: p.weight != null ? String(p.weight) : "", placeholder: "比如：4.2" },
+  ];
+}
+
+function catHealthFields(item = {}) {
+  return [
+    { label: "项目类型", name: "type", type: "select", value: item.type || "疫苗", options: CAT_HEALTH_TYPES.map((t) => ({ value: t, label: t })) },
+    { label: "名称（可选）", name: "name", value: item.name || "", placeholder: "比如：妙三多 / 体内驱虫药" },
+    { label: "上次时间", name: "lastDate", type: "date", value: item.lastDate || "", required: true },
+    { label: "周期（天，留空表示单次不重复）", name: "cycleDays", type: "number", value: item.cycleDays != null ? String(item.cycleDays) : "", placeholder: "比如：365 / 90 / 30" },
+    { label: "备注（可选）", name: "note", type: "textarea", value: item.note || "", placeholder: "医院、批次、注意事项..." },
+  ];
+}
+
 function getFormValues(form) {
   const values = {};
   new FormData(form).forEach((val, key) => {
@@ -864,6 +1146,39 @@ document.getElementById("addRecipe").addEventListener("click", () => {
   });
 });
 
+document.getElementById("addCat").addEventListener("click", () => {
+  openModal("添加嘻嘻记录", catFields(), (values) => {
+    data.cats.unshift({
+      id: uid("c"),
+      title: values.title,
+      date: values.date,
+      mood: values.mood,
+      weight: values.weight ? Number(values.weight) : null,
+      content: values.content,
+      image: values.image || "",
+    });
+    saveData();
+    renderCats();
+    showToast("嘻嘻记录已添加");
+  });
+});
+
+document.getElementById("addCatHealth").addEventListener("click", () => {
+  openModal("添加健康提醒", catHealthFields(), (values) => {
+    data.catHealth.unshift({
+      id: uid("h"),
+      type: values.type,
+      name: values.name || "",
+      lastDate: values.lastDate,
+      cycleDays: values.cycleDays ? Number(values.cycleDays) : null,
+      note: values.note || "",
+    });
+    saveData();
+    renderCats();
+    showToast("健康提醒已添加");
+  });
+});
+
 els.modalForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!modalContext) return;
@@ -901,6 +1216,28 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "filter-cat") {
+    activeCatFilter = btn.dataset.mood;
+    renderCats();
+    return;
+  }
+
+  if (action === "edit-cat-profile") {
+    openModal("嘻嘻的小档案", catProfileFields(data.catProfile), (values) => {
+      data.catProfile = {
+        name: values.name || "嘻嘻",
+        avatar: values.avatar || "",
+        birthday: values.birthday || "",
+        breed: values.breed || "",
+        weight: values.weight ? Number(values.weight) : null,
+      };
+      saveData();
+      renderCats();
+      showToast("嘻嘻档案已更新");
+    });
+    return;
+  }
+
   if (action === "calendar") {
     const type = btn.dataset.type;
     let opts = null;
@@ -913,6 +1250,10 @@ document.addEventListener("click", (event) => {
     } else if (type === "wish") {
       const item = data.wishes.find((w) => w.id === id);
       if (item && item.targetDate) opts = { title: item.title, date: item.targetDate, note: item.note, remindMinutes: 1440 };
+    } else if (type === "cathealth") {
+      const item = data.catHealth.find((h) => h.id === id);
+      const info = item ? catHealthInfo(item) : null;
+      if (item && info && info.nextDate) opts = { title: `嘻嘻 · ${item.name || item.type}`, date: info.nextDate, note: item.note, remindMinutes: 1440 };
     }
     if (opts) {
       downloadICS(opts);
@@ -929,6 +1270,8 @@ document.addEventListener("click", (event) => {
       schedule: "这个日程",
       note: "这张便签",
       recipe: "这道食谱",
+      cat: "这条嘻嘻记录",
+      cathealth: "这条健康提醒",
     };
     const type = action.replace("delete-", "");
     if (!confirm(`确定删除${labels[type]}吗？`)) return;
@@ -941,6 +1284,8 @@ document.addEventListener("click", (event) => {
       schedule: "schedules",
       note: "sweetNotes",
       recipe: "recipes",
+      cat: "cats",
+      cathealth: "catHealth",
     };
     data[keyMap[type]] = data[keyMap[type]].filter((item) => item.id !== id);
     saveData();
@@ -1038,6 +1383,37 @@ document.addEventListener("click", (event) => {
         saveData();
         renderRecipes();
         showToast("食谱已更新");
+      });
+    }
+    if (type === "cat") {
+      const item = data.cats.find((c) => c.id === id);
+      openModal("编辑嘻嘻记录", catFields(item), (values) => {
+        Object.assign(item, {
+          title: values.title,
+          date: values.date,
+          mood: values.mood,
+          weight: values.weight ? Number(values.weight) : null,
+          content: values.content,
+          image: values.image || "",
+        });
+        saveData();
+        renderCats();
+        showToast("嘻嘻记录已更新");
+      });
+    }
+    if (type === "cathealth") {
+      const item = data.catHealth.find((h) => h.id === id);
+      openModal("编辑健康提醒", catHealthFields(item), (values) => {
+        Object.assign(item, {
+          type: values.type,
+          name: values.name || "",
+          lastDate: values.lastDate,
+          cycleDays: values.cycleDays ? Number(values.cycleDays) : null,
+          note: values.note || "",
+        });
+        saveData();
+        renderCats();
+        showToast("健康提醒已更新");
       });
     }
   }
