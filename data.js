@@ -58,7 +58,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781313453883,
+  "_updatedAt": 1781313642237,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
@@ -88,5 +88,14 @@ const SITE_DATA = {
     "breed": "英短蓝白",
     "weight": 10.3
   },
-  "catHealth": []
+  "catHealth": [
+    {
+      "id": "hmqbo5eykap7f",
+      "type": "驱虫(体内外)",
+      "name": "体外驱虫药",
+      "lastDate": "2025-06-12",
+      "cycleDays": 90,
+      "note": ""
+    }
+  ]
 };
