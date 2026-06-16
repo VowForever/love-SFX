@@ -46,8 +46,9 @@ const SITE_DATA = {
       "id": "wmqcvgxi6eehm",
       "title": "6月底小雪周末休息的话一块出去旅游",
       "done": false,
-      "note": "正常排班 6 月 2728 休息0.0",
-      "targetDate": "2026-06-27"
+      "note": "计划中",
+      "targetDate": "2026-06-27",
+      "doneAt": null
     }
   ],
   "memories": [
@@ -72,7 +73,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1781520355734,
+  "_updatedAt": 1781609862111,
   "recipes": [
     {
       "id": "rmqafut70a5h5",
