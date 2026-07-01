@@ -32,6 +32,10 @@ const els = {
   settingsBtn: document.getElementById("settingsBtn"),
   settingsPanel: document.getElementById("settingsPanel"),
   settingsClose: document.getElementById("settingsClose"),
+  menuBtn: document.getElementById("menuBtn"),
+  sideDrawer: document.getElementById("sideDrawer"),
+  drawerBackdrop: document.getElementById("drawerBackdrop"),
+  drawerClose: document.getElementById("drawerClose"),
   settingStartDate: document.getElementById("settingStartDate"),
   settingSubtitle: document.getElementById("settingSubtitle"),
   exportData: document.getElementById("exportData"),
@@ -1429,10 +1433,30 @@ document.querySelectorAll(".filters button").forEach((button) => {
   });
 });
 
-document.querySelectorAll(".nav-pills a").forEach((link) => {
+function openDrawer() {
+  els.drawerBackdrop.hidden = false;
+  els.sideDrawer.classList.add("open");
+  els.sideDrawer.setAttribute("aria-hidden", "false");
+  els.menuBtn.setAttribute("aria-expanded", "true");
+}
+function closeDrawer() {
+  els.sideDrawer.classList.remove("open");
+  els.sideDrawer.setAttribute("aria-hidden", "true");
+  els.menuBtn.setAttribute("aria-expanded", "false");
+  els.drawerBackdrop.hidden = true;
+}
+els.menuBtn.addEventListener("click", openDrawer);
+els.drawerClose.addEventListener("click", closeDrawer);
+els.drawerBackdrop.addEventListener("click", closeDrawer);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && els.sideDrawer.classList.contains("open")) closeDrawer();
+});
+
+document.querySelectorAll(".side-drawer a").forEach((link) => {
   link.addEventListener("click", () => {
-    document.querySelectorAll(".nav-pills a").forEach((item) => item.classList.remove("active"));
+    document.querySelectorAll(".side-drawer a").forEach((item) => item.classList.remove("active"));
     link.classList.add("active");
+    closeDrawer();
   });
 });
 

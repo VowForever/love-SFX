@@ -24,22 +24,29 @@
       <span class="brand-mark">❤</span>
       <span>小周和小雪的粉色恋爱</span>
     </a>
-    <nav class="nav-pills" aria-label="页面导航">
-      <a class="active" href="#home">首页</a>
-      <a href="#diary">日常</a>
-      <a href="#anniversary">纪念日</a>
-      <a href="#schedule">日程</a>
-      <a href="#wishlist">心愿</a>
-      <a href="#recipes">食谱</a>
-      <a href="#cat">嘻嘻</a>
-      <a href="#album">相册</a>
-      <a href="#notes">便签</a>
-    </nav>
     <div class="header-actions">
       <button class="round-action" id="settingsBtn" aria-label="设置与数据">⚙</button>
       <button class="round-action" id="themeToggle" aria-label="切换主题">☾</button>
+      <button class="round-action" id="menuBtn" aria-label="打开导航" aria-expanded="false">☰</button>
     </div>
   </header>
+
+  <div class="drawer-backdrop" id="drawerBackdrop" hidden></div>
+  <nav class="side-drawer" id="sideDrawer" aria-label="页面导航" aria-hidden="true">
+    <div class="drawer-head">
+      <span>导航</span>
+      <button class="icon-btn" id="drawerClose" aria-label="关闭导航">×</button>
+    </div>
+    <a class="active" href="#home">首页</a>
+    <a href="#diary">日常</a>
+    <a href="#anniversary">纪念日</a>
+    <a href="#schedule">日程</a>
+    <a href="#wishlist">心愿</a>
+    <a href="#recipes">食谱</a>
+    <a href="#cat">嘻嘻</a>
+    <a href="#album">相册</a>
+    <a href="#notes">便签</a>
+  </nav>
 
   <main>
     <section class="hero" id="home">
