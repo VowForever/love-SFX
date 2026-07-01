@@ -281,7 +281,7 @@ function renderDiaries() {
             </div>
             <h3>${escapeHtml(item.title)}</h3>
             <p>${escapeHtml(item.content)}</p>
-            ${item.image ? `<div class="diary-photo"><img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" /></div>` : ""}
+            ${item.image ? `<div class="diary-photo"><img src="${resolveImageSrc(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy" /></div>` : ""}
             <div class="card-actions inline">
               <button class="icon-btn" data-action="edit-diary" data-id="${item.id}" aria-label="编辑">✎</button>
               <button class="icon-btn danger" data-action="delete-diary" data-id="${item.id}" aria-label="删除">×</button>
@@ -327,7 +327,7 @@ function renderMemories() {
     .map(
       (item) => `
       <article class="memory-card ${item.theme}" data-id="${item.id}">
-        ${item.image ? `<div class="memory-photo"><img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" /></div>` : "<span></span>"}
+        ${item.image ? `<div class="memory-photo"><img src="${resolveImageSrc(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy" /></div>` : "<span></span>"}
         <strong>${escapeHtml(item.title)}</strong>
         <small>${escapeHtml(item.subtitle)}</small>
         <div class="card-actions inline">
@@ -374,7 +374,7 @@ function renderRecipes() {
       <article class="recipe-card" data-id="${item.id}">
         ${
           item.image
-            ? `<div class="recipe-photo"><img src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" /></div>`
+            ? `<div class="recipe-photo"><img src="${resolveImageSrc(item.image)}" alt="${escapeHtml(item.name)}" loading="lazy" /></div>`
             : `<div class="recipe-photo no-photo"><span>🍽</span></div>`
         }
         <div class="recipe-body">
@@ -427,9 +427,8 @@ const CAT_BLUEWHITE_SVG = `
     </svg>`;
 
 function catAvatarMarkup(avatar) {
-  return avatar && (avatar.startsWith("data:") || avatar.startsWith("http"))
-    ? `<img src="${avatar}" alt="嘻嘻" />`
-    : CAT_BLUEWHITE_SVG;
+  const src = resolveImageSrc(avatar);
+  return src ? `<img src="${src}" alt="嘻嘻" />` : CAT_BLUEWHITE_SVG;
 }
 
 function renderCatProfile() {
@@ -595,7 +594,7 @@ function renderCats() {
       <article class="recipe-card cat-card" data-id="${item.id}">
         ${
           item.image
-            ? `<div class="recipe-photo"><img src="${item.image}" alt="${escapeHtml(item.title)}" loading="lazy" /></div>`
+            ? `<div class="recipe-photo"><img src="${resolveImageSrc(item.image)}" alt="${escapeHtml(item.title)}" loading="lazy" /></div>`
             : `<div class="recipe-photo no-photo"><span>🐾</span></div>`
         }
         <div class="recipe-body">
@@ -674,7 +673,7 @@ function openModal(title, fields, onSubmit) {
           <div class="field image-field">
             <span>${field.label}</span>
             <input type="file" accept="image/*" data-image-pick />
-            <img class="image-preview" src="${field.value || ""}" alt="预览" ${hasImg ? "" : "hidden"} />
+            <img class="image-preview" src="${resolveImageSrc(field.value)}" alt="预览" ${hasImg ? "" : "hidden"} />
             <input type="hidden" name="${field.name}" value="${field.value || ""}" />
             <button type="button" class="ghost-btn small-btn" data-image-clear ${hasImg ? "" : "hidden"}>移除图片</button>
           </div>
@@ -903,7 +902,7 @@ function catFields(item = {}) {
 function catProfileFields(p = {}) {
   return [
     { label: "名字", name: "name", value: p.name || "嘻嘻", placeholder: "嘻嘻" },
-    { label: "头像照片（可选，不传则用蓝白猫卡通头像）", name: "avatar", type: "image", value: (p.avatar && (p.avatar.startsWith("data:") || p.avatar.startsWith("http"))) ? p.avatar : "" },
+    { label: "头像照片（可选，不传则用蓝白猫卡通头像）", name: "avatar", type: "image", value: p.avatar || "" },
     { label: "生日（可选）", name: "birthday", type: "date", value: p.birthday || "" },
     { label: "品种（可选）", name: "breed", value: p.breed || "", placeholder: "比如：英短蓝猫" },
     { label: "当前体重（kg，可选）", name: "weight", type: "number", value: p.weight != null ? String(p.weight) : "", placeholder: "比如：4.2" },
@@ -1185,10 +1184,23 @@ document.getElementById("addCatHealth").addEventListener("click", () => {
   });
 });
 
-els.modalForm.addEventListener("submit", (event) => {
+els.modalForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!modalContext) return;
   const values = getFormValues(event.target);
+  if (syncEnabled()) {
+    for (const key of Object.keys(values)) {
+      const v = values[key];
+      if (typeof v === "string" && v.startsWith("data:image")) {
+        try {
+          setSyncStatus("syncing", "上传图片…");
+          values[key] = await uploadImageToRepo(v);
+        } catch (_) {
+          showToast("图片上传失败，暂存本地");
+        }
+      }
+    }
+  }
   modalContext.onSubmit(values);
   closeModal();
 });
@@ -1521,6 +1533,7 @@ let syncConfig = loadSyncConfig();
 let cloudSha = null;
 let pushTimer = null;
 let pushing = false;
+let migrating = false;
 
 function loadSyncConfig() {
   try {
@@ -1552,6 +1565,17 @@ function utf8ToBase64(str) {
 
 function base64ToUtf8(b64) {
   return decodeURIComponent(escape(atob(b64.replace(/\s/g, ""))));
+}
+
+// 图片字段可能是：base64（data:）、完整 http 链接、或独立存储的裸文件名
+function resolveImageSrc(val) {
+  if (!val) return "";
+  if (val.startsWith("data:") || val.startsWith("http")) return val;
+  if (syncConfig && syncConfig.owner && syncConfig.repo) {
+    const branch = syncConfig.branch || "main";
+    return `https://raw.githubusercontent.com/${syncConfig.owner}/${syncConfig.repo}/${branch}/images/${val}`;
+  }
+  return "";
 }
 
 function serializeData(d) {
@@ -1618,6 +1642,21 @@ async function cloudGet() {
   return { data: parseDataText(text), sha: json.sha };
 }
 
+// 把一张 base64 图片作为独立文件传到仓库 images/ 下，返回文件名
+async function uploadImageToRepo(dataUrl) {
+  const filename = `${uid("img_")}.jpg`;
+  const content = dataUrl.split(",")[1] || "";
+  const branch = syncConfig.branch || "main";
+  const url = `https://api.github.com/repos/${syncConfig.owner}/${syncConfig.repo}/contents/images/${filename}`;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: { ...ghHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ message: `add image ${filename}`, content, branch }),
+  });
+  if (!res.ok) throw new Error(await ghErrorText(res));
+  return filename;
+}
+
 // 把本地 data 写入仓库；自动处理 sha 冲突重试一次
 async function cloudPut(retry = true) {
   const branch = syncConfig.branch || "main";
@@ -1671,6 +1710,7 @@ async function cloudPull() {
     cloudSha = null;
     await cloudPut();
     setSyncStatus("ok", "已用本地数据初始化云端");
+    migrateImagesToRepo();
     return;
   }
   cloudSha = remote.sha;
@@ -1684,6 +1724,38 @@ async function cloudPull() {
   } else {
     await cloudPut();
     setSyncStatus("ok", "本地较新，已上传到云端");
+  }
+  migrateImagesToRepo();
+}
+
+// 一次性把仍内嵌为 base64 的旧图迁移成仓库独立文件（幂等，可重跑）
+async function migrateImagesToRepo() {
+  if (!syncEnabled() || migrating) return;
+  const targets = [];
+  const scan = (obj, key) => {
+    if (obj && typeof obj[key] === "string" && obj[key].startsWith("data:image")) targets.push([obj, key]);
+  };
+  (data.diaries || []).forEach((x) => scan(x, "image"));
+  (data.memories || []).forEach((x) => scan(x, "image"));
+  (data.recipes || []).forEach((x) => scan(x, "image"));
+  (data.cats || []).forEach((x) => scan(x, "image"));
+  scan(data.catProfile, "avatar");
+  if (!targets.length) return;
+  migrating = true;
+  let done = 0;
+  try {
+    for (const [obj, key] of targets) {
+      setSyncStatus("syncing", `迁移图片 ${++done}/${targets.length}…`);
+      obj[key] = await uploadImageToRepo(obj[key]);
+    }
+    saveData();
+    renderAll();
+    showToast(`已迁移 ${targets.length} 张图片到独立存储`);
+  } catch (err) {
+    saveData();
+    setSyncStatus("error", `图片迁移中断：${err.message}（已迁 ${done}/${targets.length}，可重连继续）`);
+  } finally {
+    migrating = false;
   }
 }
 
