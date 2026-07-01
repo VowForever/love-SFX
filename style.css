@@ -1808,13 +1808,16 @@ footer {
     font-size: 18px;
   }
 
-  .entry-grid,
   .story-panel,
   .stats-row,
   .wish-stats,
   .wish-list,
   .album-grid {
     grid-template-columns: 1fr;
+  }
+
+  .entry-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .section-head {
