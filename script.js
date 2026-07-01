@@ -33,6 +33,7 @@ const els = {
   settingsPanel: document.getElementById("settingsPanel"),
   settingsClose: document.getElementById("settingsClose"),
   menuBtn: document.getElementById("menuBtn"),
+  menuFab: document.getElementById("menuFab"),
   sideDrawer: document.getElementById("sideDrawer"),
   drawerBackdrop: document.getElementById("drawerBackdrop"),
   drawerClose: document.getElementById("drawerClose"),
@@ -1438,12 +1439,14 @@ function openDrawer() {
   els.sideDrawer.classList.add("open");
   els.sideDrawer.setAttribute("aria-hidden", "false");
   els.menuBtn.setAttribute("aria-expanded", "true");
+  if (els.menuFab) els.menuFab.classList.remove("show");
 }
 function closeDrawer() {
   els.sideDrawer.classList.remove("open");
   els.sideDrawer.setAttribute("aria-hidden", "true");
   els.menuBtn.setAttribute("aria-expanded", "false");
   els.drawerBackdrop.hidden = true;
+  if (els.menuFab) els.menuFab.classList.toggle("show", window.scrollY > 300);
 }
 els.menuBtn.addEventListener("click", openDrawer);
 els.drawerClose.addEventListener("click", closeDrawer);
@@ -1459,6 +1462,15 @@ document.querySelectorAll(".side-drawer a").forEach((link) => {
     closeDrawer();
   });
 });
+
+if (els.menuFab) {
+  els.menuFab.addEventListener("click", openDrawer);
+  const toggleFab = () => {
+    els.menuFab.classList.toggle("show", window.scrollY > 300 && !els.sideDrawer.classList.contains("open"));
+  };
+  window.addEventListener("scroll", toggleFab, { passive: true });
+  toggleFab();
+}
 
 els.themeToggle.addEventListener("click", () => {
   document.body.classList.toggle("night");
