@@ -1213,7 +1213,9 @@ els.modalForm.addEventListener("submit", async (event) => {
       if (typeof v === "string" && v.startsWith("data:image")) {
         try {
           setSyncStatus("syncing", "上传图片…");
-          values[key] = await uploadImageToRepo(v);
+          const filename = await uploadImageToRepo(v);
+          await cacheDataUrlImage(filename, v);
+          values[key] = filename;
         } catch (_) {
           showToast("图片上传失败，暂存本地");
         }
@@ -1787,15 +1789,81 @@ function base64ToUtf8(b64) {
   return decodeURIComponent(escape(atob(b64.replace(/\s/g, ""))));
 }
 
+// ---- 图片本地缓存 ----
+// 网页/PWA 由 sw.js 缓存图片；原生 App(Capacitor)内不注册 SW，raw.githubusercontent
+// 的 Cache-Control 又很短，靠 WebView HTTP 缓存留不住，所以在无 SW 的环境用 Cache API
+// 在 JS 层自己缓存：文件名内容唯一、上传后不变，首次下载后长期留存，之后秒开、离线可看。
+const SW_ACTIVE =
+  "serviceWorker" in navigator && !window.Capacitor && location.protocol.startsWith("http");
+const USE_JS_IMG_CACHE = !SW_ACTIVE && typeof caches !== "undefined";
+const IMG_CACHE_NAME = "lovejournal-img-v1";
+const imgUrlCache = new Map(); // 裸文件名 -> objectURL（本会话复用，跨重渲染不重复解码）
+const imgFetching = new Set(); // 正在后台下载的文件名，避免重复请求
+
+function rawImageUrl(filename) {
+  if (syncConfig && syncConfig.owner && syncConfig.repo) {
+    const branch = syncConfig.branch || "main";
+    return `https://raw.githubusercontent.com/${syncConfig.owner}/${syncConfig.repo}/${branch}/images/${filename}`;
+  }
+  return "";
+}
+
+// 把图片 blob 写入持久缓存，并生成本会话可直接用的 objectURL
+async function cacheImageBlob(filename, blob) {
+  try {
+    const cache = await caches.open(IMG_CACHE_NAME);
+    await cache.put(`img-cache/${filename}`, new Response(blob));
+  } catch (_) {}
+  if (!imgUrlCache.has(filename)) imgUrlCache.set(filename, URL.createObjectURL(blob));
+}
+
+// 后台下载并缓存一张图（供下次打开秒开）
+async function fetchAndCacheImage(filename) {
+  if (imgUrlCache.has(filename) || imgFetching.has(filename)) return;
+  const url = rawImageUrl(filename);
+  if (!url) return;
+  imgFetching.add(filename);
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (res.ok) await cacheImageBlob(filename, await res.blob());
+  } catch (_) {
+  } finally {
+    imgFetching.delete(filename);
+  }
+}
+
+// 启动时把已缓存的图片读进内存(objectURL)，让首屏直接用本地图、不走网络
+async function preloadCachedImages() {
+  if (!USE_JS_IMG_CACHE) return;
+  try {
+    const cache = await caches.open(IMG_CACHE_NAME);
+    for (const req of await cache.keys()) {
+      const filename = decodeURIComponent(req.url.split("/").pop());
+      if (!filename || imgUrlCache.has(filename)) continue;
+      const res = await cache.match(req);
+      if (res) imgUrlCache.set(filename, URL.createObjectURL(await res.blob()));
+    }
+  } catch (_) {}
+}
+
+// 新增/编辑照片上传后，把这张图(已有 base64)直接存进本地缓存，免得下次再下载
+async function cacheDataUrlImage(filename, dataUrl) {
+  if (!USE_JS_IMG_CACHE) return;
+  try {
+    await cacheImageBlob(filename, await (await fetch(dataUrl)).blob());
+  } catch (_) {}
+}
+
 // 图片字段可能是：base64（data:）、完整 http 链接、或独立存储的裸文件名
 function resolveImageSrc(val) {
   if (!val) return "";
   if (val.startsWith("data:") || val.startsWith("http")) return val;
-  if (syncConfig && syncConfig.owner && syncConfig.repo) {
-    const branch = syncConfig.branch || "main";
-    return `https://raw.githubusercontent.com/${syncConfig.owner}/${syncConfig.repo}/${branch}/images/${val}`;
+  // 裸文件名：无 SW 环境优先用本地缓存
+  if (USE_JS_IMG_CACHE) {
+    if (imgUrlCache.has(val)) return imgUrlCache.get(val); // 命中 → 秒开、无网络
+    fetchAndCacheImage(val); // 未命中 → 后台下载缓存，供下次秒开
   }
-  return "";
+  return rawImageUrl(val);
 }
 
 function serializeData(d) {
@@ -2041,8 +2109,10 @@ els.ghDisconnect.addEventListener("click", () => {
   showToast("已断开云同步");
 });
 
-renderAll();
-cloudInit();
+preloadCachedImages().finally(() => {
+  renderAll();
+  cloudInit();
+});
 
 // 仅在普通浏览器注册 Service Worker，原生 App(Capacitor)内跳过
 if ("serviceWorker" in navigator && !window.Capacitor && location.protocol.startsWith("http")) {
