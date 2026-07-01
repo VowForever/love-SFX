@@ -25,6 +25,7 @@ let modalContext = null;
 
 const els = {
   daysTogether: document.getElementById("daysTogether"),
+  loveLive: document.getElementById("loveLive"),
   relatedDays: document.getElementById("relatedDays"),
   startDateText: document.getElementById("startDateText"),
   year: document.getElementById("year"),
@@ -167,7 +168,25 @@ function renderHero() {
     `从 ${start.getFullYear()} 年 ${String(start.getMonth() + 1).padStart(2, "0")} 月 ${String(start.getDate()).padStart(2, "0")} 日开始收藏粉色回忆`;
   els.settingStartDate.value = data.settings.startDate;
   els.settingSubtitle.value = data.settings.subtitle || "";
+  tickLoveTimer();
 }
+
+function tickLoveTimer() {
+  if (!els.loveLive) return;
+  const diff = Date.now() - getStartDate().getTime();
+  if (diff < 0) {
+    els.loveLive.textContent = "还没开始呀～";
+    return;
+  }
+  const sec = Math.floor(diff / 1000);
+  const d = Math.floor(sec / 86400);
+  const h = Math.floor((sec % 86400) / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  els.loveLive.textContent = `${d} 天 ${pad(h)} 时 ${pad(m)} 分 ${pad(s)} 秒`;
+}
+setInterval(tickLoveTimer, 1000);
 
 function getNextOccurrence(dateStr, yearly) {
   const base = parseDate(dateStr);
