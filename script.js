@@ -1603,7 +1603,18 @@ async function cloudGet() {
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(await ghErrorText(res));
   const json = await res.json();
-  const text = base64ToUtf8(json.content);
+  let text;
+  if (json.content && json.content.trim()) {
+    text = base64ToUtf8(json.content);
+  } else if (json.git_url) {
+    // 文件 >1MB 时 Contents API 不再内嵌 content，改用 Blobs API（支持到 100MB）
+    const blobRes = await fetch(json.git_url, { headers: ghHeaders(), cache: "no-store" });
+    if (!blobRes.ok) throw new Error(await ghErrorText(blobRes));
+    const blob = await blobRes.json();
+    text = base64ToUtf8(blob.content);
+  } else {
+    throw new Error("云端文件内容为空");
+  }
   return { data: parseDataText(text), sha: json.sha };
 }
 
