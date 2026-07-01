@@ -33,7 +33,7 @@ const els = {
   settingsPanel: document.getElementById("settingsPanel"),
   settingsClose: document.getElementById("settingsClose"),
   menuBtn: document.getElementById("menuBtn"),
-  menuFab: document.getElementById("menuFab"),
+  tabBar: document.getElementById("tabBar"),
   sideDrawer: document.getElementById("sideDrawer"),
   drawerBackdrop: document.getElementById("drawerBackdrop"),
   drawerClose: document.getElementById("drawerClose"),
@@ -1451,14 +1451,12 @@ function openDrawer() {
   els.sideDrawer.classList.add("open");
   els.sideDrawer.setAttribute("aria-hidden", "false");
   els.menuBtn.setAttribute("aria-expanded", "true");
-  if (els.menuFab) els.menuFab.classList.remove("show");
 }
 function closeDrawer() {
   els.sideDrawer.classList.remove("open");
   els.sideDrawer.setAttribute("aria-hidden", "true");
   els.menuBtn.setAttribute("aria-expanded", "false");
   els.drawerBackdrop.hidden = true;
-  if (els.menuFab) els.menuFab.classList.toggle("show", window.scrollY > 300);
 }
 els.menuBtn.addEventListener("click", openDrawer);
 els.drawerClose.addEventListener("click", closeDrawer);
@@ -1467,22 +1465,81 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && els.sideDrawer.classList.contains("open")) closeDrawer();
 });
 
+// 视图切换 + hash 路由:一次只显示一个板块,底部 tab 做主导航
+const VIEWS = {
+  home: [".hero", ".quick-entry", ".story-panel"],
+  diary: [".diary-section"],
+  schedule: [".schedule-section"],
+  wishlist: [".wish-section"],
+  recipes: [".recipe-section"],
+  cat: [".cat-section"],
+  album: [".album-section"],
+  notes: [".notes-section"],
+};
+const VIEW_OF = {
+  home: "home",
+  anniversary: "home",
+  diary: "diary",
+  schedule: "schedule",
+  wishlist: "wishlist",
+  recipes: "recipes",
+  cat: "cat",
+  album: "album",
+  notes: "notes",
+};
+const mainSections = Array.from(document.querySelector("main").children);
+
+function showView(name) {
+  const view = VIEWS[name] ? name : "home";
+  const selectors = VIEWS[view];
+  mainSections.forEach((sec) => {
+    const shown = selectors.some((sel) => sec.matches(sel));
+    sec.classList.toggle("view-off", !shown);
+  });
+  const primaryViews = ["home", "diary", "recipes", "wishlist"];
+  document.querySelectorAll(".tab-item[data-view]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.view === view);
+  });
+  const moreBtn = document.getElementById("tabMore");
+  if (moreBtn) moreBtn.classList.toggle("active", !primaryViews.includes(view));
+  document.querySelectorAll(".side-drawer a").forEach((link) => {
+    link.classList.toggle("active", VIEW_OF[(link.getAttribute("href") || "").slice(1)] === view);
+  });
+  closeDrawer();
+  window.scrollTo(0, 0);
+}
+
+function routeFromHash() {
+  const key = (location.hash || "#home").slice(1);
+  const view = VIEW_OF[key] || "home";
+  showView(view);
+  if (key === "anniversary") {
+    const el = document.getElementById("anniversary");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+window.addEventListener("hashchange", routeFromHash);
+
+document.querySelectorAll(".tab-item[data-view]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const target = "#" + btn.dataset.view;
+    if (location.hash === target) showView(btn.dataset.view);
+    else location.hash = target;
+  });
+});
+const tabMore = document.getElementById("tabMore");
+if (tabMore) tabMore.addEventListener("click", openDrawer);
+
 document.querySelectorAll(".side-drawer a").forEach((link) => {
   link.addEventListener("click", () => {
-    document.querySelectorAll(".side-drawer a").forEach((item) => item.classList.remove("active"));
-    link.classList.add("active");
+    const key = (link.getAttribute("href") || "").slice(1);
+    if (location.hash === "#" + key) routeFromHash();
     closeDrawer();
   });
 });
 
-if (els.menuFab) {
-  els.menuFab.addEventListener("click", openDrawer);
-  const toggleFab = () => {
-    els.menuFab.classList.toggle("show", window.scrollY > 300 && !els.sideDrawer.classList.contains("open"));
-  };
-  window.addEventListener("scroll", toggleFab, { passive: true });
-  toggleFab();
-}
+routeFromHash();
 
 els.themeToggle.addEventListener("click", () => {
   document.body.classList.toggle("night");
