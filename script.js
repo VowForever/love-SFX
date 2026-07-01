@@ -1494,6 +1494,7 @@ const VIEWS = {
   cat: [".cat-section"],
   album: [".album-section"],
   notes: [".notes-section"],
+  map: [".map-section"],
 };
 const VIEW_OF = {
   home: "home",
@@ -1505,6 +1506,7 @@ const VIEW_OF = {
   cat: "cat",
   album: "album",
   notes: "notes",
+  map: "map",
 };
 const mainSections = Array.from(document.querySelector("main").children);
 
@@ -1526,6 +1528,7 @@ function showView(name) {
   });
   closeDrawer();
   window.scrollTo(0, 0);
+  if (view === "map") ensureMap();
 }
 
 function routeFromHash() {
@@ -1557,6 +1560,147 @@ document.querySelectorAll(".side-drawer a").forEach((link) => {
     closeDrawer();
   });
 });
+
+// ===== 实时位置 Demo（Leaflet + OSM，对方为模拟数据）=====
+let mapState = null;
+const DEFAULT_CENTER = [39.9042, 116.4074]; // 无定位时的默认中心（北京）
+
+function ensureMap() {
+  if (typeof L === "undefined") return;
+  if (mapState) {
+    mapState.map.invalidateSize();
+    return;
+  }
+  const map = L.map("mapCanvas").setView(DEFAULT_CENTER, 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19,
+    attribution: "© OpenStreetMap",
+  }).addTo(map);
+
+  const meIcon = L.divIcon({
+    className: "loc-dot loc-me",
+    html: '<span style="display:block;width:18px;height:18px;border-radius:50%;background:#ef476f;border:3px solid #fff;box-shadow:0 0 0 2px #ef476f;"></span>',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
+  const paIcon = L.divIcon({
+    className: "loc-dot loc-partner",
+    html: '<span style="display:block;width:18px;height:18px;border-radius:50%;background:#f5a623;border:3px solid #fff;box-shadow:0 0 0 2px #f5a623;"></span>',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  });
+
+  mapState = {
+    map,
+    meIcon,
+    paIcon,
+    meMarker: null,
+    paMarker: null,
+    watchId: null,
+    simTimer: null,
+    sharing: false,
+  };
+  setTimeout(() => map.invalidateSize(), 200);
+}
+
+function setMapStatus(text) {
+  const el = document.getElementById("mapStatus");
+  if (el) el.textContent = text;
+}
+
+function placeMe(lat, lng) {
+  if (!mapState) return;
+  if (!mapState.meMarker) {
+    mapState.meMarker = L.marker([lat, lng], { icon: mapState.meIcon })
+      .addTo(mapState.map)
+      .bindPopup("我");
+  } else {
+    mapState.meMarker.setLatLng([lat, lng]);
+  }
+  mapState.map.setView([lat, lng], 15);
+  startPartnerSim(lat, lng);
+}
+
+function startPartnerSim(lat, lng) {
+  if (!mapState) return;
+  // 对方初始落在我附近 ~200m
+  let pLat = lat + (Math.random() - 0.5) * 0.004;
+  let pLng = lng + (Math.random() - 0.5) * 0.004;
+  const drawPartner = () => {
+    if (!mapState.paMarker) {
+      mapState.paMarker = L.marker([pLat, pLng], { icon: mapState.paIcon })
+        .addTo(mapState.map)
+        .bindPopup("对方（模拟）");
+    } else {
+      mapState.paMarker.setLatLng([pLat, pLng]);
+    }
+  };
+  drawPartner();
+  if (mapState.simTimer) clearInterval(mapState.simTimer);
+  mapState.simTimer = setInterval(() => {
+    pLat += (Math.random() - 0.5) * 0.0009;
+    pLng += (Math.random() - 0.5) * 0.0009;
+    drawPartner();
+  }, 2000);
+}
+
+function startShare() {
+  if (!mapState) return;
+  mapState.sharing = true;
+  const btn = document.getElementById("shareLocBtn");
+  if (btn) btn.textContent = "停止共享";
+  setMapStatus("正在获取定位…");
+  if (navigator.geolocation) {
+    mapState.watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        placeMe(pos.coords.latitude, pos.coords.longitude);
+        setMapStatus("共享中 · 对方在线（模拟）");
+      },
+      () => {
+        setMapStatus("定位不可用 · 已用默认位置 · 对方在线（模拟）");
+        showToast("无法获取定位，已使用默认位置");
+        placeMe(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
+  } else {
+    setMapStatus("此设备不支持定位 · 已用默认位置 · 对方在线（模拟）");
+    placeMe(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+  }
+}
+
+function stopShare() {
+  if (!mapState) return;
+  mapState.sharing = false;
+  const btn = document.getElementById("shareLocBtn");
+  if (btn) btn.textContent = "开始共享位置";
+  if (mapState.watchId != null && navigator.geolocation) {
+    navigator.geolocation.clearWatch(mapState.watchId);
+    mapState.watchId = null;
+  }
+  if (mapState.simTimer) {
+    clearInterval(mapState.simTimer);
+    mapState.simTimer = null;
+  }
+  if (mapState.paMarker) {
+    mapState.map.removeLayer(mapState.paMarker);
+    mapState.paMarker = null;
+  }
+  setMapStatus("已停止");
+}
+
+const shareLocBtn = document.getElementById("shareLocBtn");
+if (shareLocBtn) {
+  shareLocBtn.addEventListener("click", () => {
+    ensureMap();
+    if (!mapState) {
+      showToast("地图加载失败，请检查网络后重试");
+      return;
+    }
+    if (mapState.sharing) stopShare();
+    else startShare();
+  });
+}
 
 routeFromHash();
 

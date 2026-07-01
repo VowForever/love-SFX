@@ -12,6 +12,8 @@
   <meta name="apple-mobile-web-app-title" content="恋爱手账" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -46,6 +48,7 @@
     <a href="#cat">嘻嘻</a>
     <a href="#album">相册</a>
     <a href="#notes">便签</a>
+    <a href="#map">位置</a>
   </nav>
 
   <main>
@@ -273,6 +276,18 @@
       </div>
       <div class="notes-board" id="notesBoard"></div>
       <p class="empty-hint" id="notesEmpty" hidden>还没有便签，写一句甜甜的话吧～</p>
+    </section>
+
+    <section class="map-section" id="map" aria-labelledby="mapTitle">
+      <div class="section-head">
+        <div>
+          <div class="section-title"><span class="tiny-icon paw-icon"></span><h2 id="mapTitle">实时位置</h2></div>
+          <p>Demo：显示你的定位，对方光点为模拟数据。真实版会接实时后端。</p>
+        </div>
+        <button class="primary-btn" id="shareLocBtn">开始共享位置</button>
+      </div>
+      <div class="map-status" id="mapStatus">未开始</div>
+      <div class="map-canvas" id="mapCanvas"></div>
     </section>
   </main>
 
