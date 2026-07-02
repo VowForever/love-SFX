@@ -2107,9 +2107,10 @@ footer {
   border: 3px solid var(--line);
   border-radius: 8px;
   overflow: hidden;
+  background: var(--paper);
 }
-.map-canvas .amap-container,
-.map-canvas > div { height: 100%; width: 100%; background: var(--paper); }
+/* Leaflet 容器就是 #mapCanvas 本身，靠上面的 60vh 撑高；内部 pane 由 Leaflet 自行定位，不要强制尺寸 */
+.map-canvas.leaflet-container { font: inherit; background: var(--paper); }
 .map-hint {
   margin: 10px 0 0;
   font-size: 13px;

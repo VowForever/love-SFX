@@ -1569,7 +1569,6 @@ const DEFAULT_BROKER = "wss://broker.emqx.io:8084/mqtt";
 const PARTNER_TIMEOUT = 20000; // 对方超过这么久没消息即视为离线
 let locConfig = loadLocConfig();
 let mapState = null;
-let amapLoading = null;
 let lastPos = null;
 
 function loadLocConfig() {
@@ -1585,7 +1584,7 @@ function saveLocConfig(cfg) {
   else localStorage.removeItem(LOC_KEY);
 }
 function locConfigured() {
-  return !!(locConfig && locConfig.amapKey && locConfig.room);
+  return !!(locConfig && locConfig.room);
 }
 function ensureMyId() {
   if (!locConfig) return "";
@@ -1629,31 +1628,19 @@ function setMapStatus(text) {
   if (el) el.textContent = text;
 }
 
-function loadAMap() {
-  if (window.AMap) return Promise.resolve(window.AMap);
-  if (amapLoading) return amapLoading;
-  if (!locConfigured()) return Promise.reject(new Error("未配置高德 Key"));
-  if (locConfig.amapSecret) {
-    window._AMapSecurityConfig = { securityJsCode: locConfig.amapSecret };
-  }
-  amapLoading = new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    // 用 1.4.15（DOM 瓦片渲染，不走 WebGL）——2.0 的 WebGL 在部分安卓 WebView 里
-    // 会因 devicePixelRatio 视口错位只渲染左侧约 1/dpr，转屏也修不好；1.4.15 无此问题
-    s.src = `https://webapi.amap.com/maps?v=1.4.15&key=${encodeURIComponent(locConfig.amapKey)}`;
-    s.async = true;
-    s.onload = () => (window.AMap ? resolve(window.AMap) : reject(new Error("高德加载异常")));
-    s.onerror = () => { amapLoading = null; reject(new Error("高德脚本加载失败")); };
-    document.head.appendChild(s);
+function dotIcon(color) {
+  return L.divIcon({
+    className: "loc-dot",
+    html: `<span style="display:block;width:18px;height:18px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 0 2px ${color};"></span>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
   });
-  return amapLoading;
 }
 
-function dotContent(color) {
-  return `<span style="display:block;width:18px;height:18px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 0 2px ${color};"></span>`;
-}
-
-async function ensureMap() {
+// 用 Leaflet 渲染高德 GCJ-02 栅格瓦片（无需 key）：纯 DOM <img> 瓦片，任何
+// devicePixelRatio / 网格布局 / 安卓 WebView 下都能正确铺满容器，不会只渲染左侧一小块。
+// 瓦片本身是 GCJ-02，正好配合 wgs84ToGcj02() 把 GPS 坐标纠偏后再落点。
+function ensureMap() {
   const hint = document.getElementById("mapHint");
   if (!locConfigured()) {
     if (hint) hint.hidden = false;
@@ -1666,21 +1653,21 @@ async function ensureMap() {
     resizeMapSoon();
     return;
   }
-  let AMap;
-  try {
-    AMap = await loadAMap();
-  } catch (err) {
-    setMapStatus("地图加载失败：" + err.message);
+  if (typeof L === "undefined") {
+    setMapStatus("地图库未加载，请检查网络");
     return;
   }
-  // resizeEnable：让高德自己监听容器尺寸变化并自适应，从根上治「半屏白」
-  const map = new AMap.Map("mapCanvas", {
+  const map = L.map("mapCanvas", {
+    center: [39.9042, 116.4074],
     zoom: 15,
-    center: [116.4074, 39.9042],
-    resizeEnable: true,
+    zoomControl: true,
+    attributionControl: false,
   });
+  L.tileLayer(
+    "https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
+    { subdomains: ["1", "2", "3", "4"], maxZoom: 19 }
+  ).addTo(map);
   mapState = {
-    AMap,
     map,
     meMarker: null,
     paMarker: null,
@@ -1691,11 +1678,9 @@ async function ensureMap() {
     partnerTs: 0,
     sharing: false,
   };
-  // 地图就绪后 + 容器尺寸变化 + 转屏/窗口变化时都重算，覆盖各种时机
-  map.on("complete", resizeMapSoon);
   const canvas = document.getElementById("mapCanvas");
   if (canvas && "ResizeObserver" in window) {
-    const ro = new ResizeObserver(() => triggerMapResize());
+    const ro = new ResizeObserver(() => { if (mapState && mapState.map) mapState.map.invalidateSize(); });
     ro.observe(canvas);
     mapState.ro = ro;
   }
@@ -1708,50 +1693,29 @@ async function ensureMap() {
   resizeMapSoon();
 }
 
-// 1.4.x 的 Map 没有 resize()，重算尺寸的方法是 triggerResize()；2.0 才是 resize()。
-// 两版本都兼容：优先 triggerResize，回退 resize。
-function triggerMapResize() {
-  if (!mapState || !mapState.map) return;
-  const m = mapState.map;
-  if (typeof m.triggerResize === "function") m.triggerResize();
-  else if (typeof m.resize === "function") m.resize();
-}
-
-// 多次错峰重算，覆盖布局/字体/瓦片加载完成等不同时机；重算前强制回流拿到最新宽度
+// 容器从隐藏切到显示后尺寸才就绪，错峰多次 invalidateSize 让 Leaflet 重算并铺满
 function resizeMapSoon() {
   if (!mapState || !mapState.map) return;
-  const canvas = document.getElementById("mapCanvas");
-  const r = () => {
-    if (!mapState || !mapState.map) return;
-    if (canvas) void canvas.offsetWidth; // 强制回流，确保读到真实宽度
-    triggerMapResize();
-  };
+  const r = () => { if (mapState && mapState.map) mapState.map.invalidateSize(); };
   requestAnimationFrame(r);
-  [60, 200, 500, 1000, 1800].forEach((t) => setTimeout(r, t));
+  [60, 200, 500, 1000].forEach((t) => setTimeout(r, t));
 }
 
-// 高德坐标顺序是 [lng, lat]
+// Leaflet 坐标顺序是 [lat, lng]
 function upsertMarker(which, gcjLat, gcjLng, title, color) {
   if (!mapState || !mapState.map) return;
-  const pos = [gcjLng, gcjLat];
   const key = which === "me" ? "meMarker" : "paMarker";
   if (!mapState[key]) {
-    mapState[key] = new mapState.AMap.Marker({
-      position: pos,
-      title,
-      content: dotContent(color),
-      offset: new mapState.AMap.Pixel(-9, -9),
-    });
-    mapState.map.add(mapState[key]);
+    mapState[key] = L.marker([gcjLat, gcjLng], { icon: dotIcon(color), title }).addTo(mapState.map);
   } else {
-    mapState[key].setPosition(pos);
+    mapState[key].setLatLng([gcjLat, gcjLng]);
   }
 }
 
 function placeMe(wgsLat, wgsLng, center) {
   const [gLat, gLng] = wgs84ToGcj02(wgsLat, wgsLng);
   upsertMarker("me", gLat, gLng, "我", "#ef476f");
-  if (center && mapState && mapState.map) mapState.map.setCenter([gLng, gLat]);
+  if (center && mapState && mapState.map) mapState.map.setView([gLat, gLng]);
 }
 
 function showPartner(wgsLat, wgsLng, name) {
@@ -1761,7 +1725,7 @@ function showPartner(wgsLat, wgsLng, name) {
 
 function clearPartner() {
   if (mapState && mapState.paMarker) {
-    mapState.map.remove(mapState.paMarker);
+    mapState.map.removeLayer(mapState.paMarker);
     mapState.paMarker = null;
   }
 }
@@ -1825,7 +1789,7 @@ function publishMyPos(wgsLat, wgsLng, acc) {
 
 async function startShare() {
   if (!locConfigured()) {
-    showToast("请先到设置里填高德 Key 和房间码");
+    showToast("请先到设置里填一个房间码");
     els.settingsPanel.hidden = false;
     fillLocForm();
     return;
@@ -1907,13 +1871,9 @@ function setLocStatus(state, text) {
 
 function fillLocForm() {
   const room = document.getElementById("locRoom");
-  const key = document.getElementById("locAmapKey");
-  const secret = document.getElementById("locAmapSecret");
   const name = document.getElementById("locName");
   const broker = document.getElementById("locBroker");
   if (locConfig) {
-    if (key) key.value = locConfig.amapKey || "";
-    if (secret) secret.value = locConfig.amapSecret || "";
     if (room) room.value = locConfig.room || "";
     if (name) name.value = locConfig.name || "";
     if (broker) broker.value = locConfig.broker || "";
@@ -1926,15 +1886,12 @@ function fillLocForm() {
 const locConnectBtn = document.getElementById("locConnect");
 if (locConnectBtn) {
   locConnectBtn.addEventListener("click", () => {
-    const amapKey = document.getElementById("locAmapKey").value.trim();
     const room = document.getElementById("locRoom").value.trim();
-    if (!amapKey || !room) {
-      showToast("请填写高德 Key 和房间码");
+    if (!room) {
+      showToast("请填写房间码");
       return;
     }
     const cfg = {
-      amapKey,
-      amapSecret: document.getElementById("locAmapSecret").value.trim(),
       room,
       name: document.getElementById("locName").value.trim(),
       broker: document.getElementById("locBroker").value.trim(),
