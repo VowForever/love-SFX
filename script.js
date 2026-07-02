@@ -1638,7 +1638,9 @@ function loadAMap() {
   }
   amapLoading = new Promise((resolve, reject) => {
     const s = document.createElement("script");
-    s.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(locConfig.amapKey)}`;
+    // 用 1.4.15（DOM 瓦片渲染，不走 WebGL）——2.0 的 WebGL 在部分安卓 WebView 里
+    // 会因 devicePixelRatio 视口错位只渲染左侧约 1/dpr，转屏也修不好；1.4.15 无此问题
+    s.src = `https://webapi.amap.com/maps?v=1.4.15&key=${encodeURIComponent(locConfig.amapKey)}`;
     s.async = true;
     s.onload = () => (window.AMap ? resolve(window.AMap) : reject(new Error("高德加载异常")));
     s.onerror = () => { amapLoading = null; reject(new Error("高德脚本加载失败")); };
@@ -1676,7 +1678,6 @@ async function ensureMap() {
     zoom: 15,
     center: [116.4074, 39.9042],
     resizeEnable: true,
-    viewMode: "2D",
   });
   mapState = {
     AMap,
