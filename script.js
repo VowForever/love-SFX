@@ -1661,7 +1661,7 @@ async function ensureMap() {
   if (hint) hint.hidden = true;
   // 容器之前是 display:none，切到本视图后尺寸才就绪，重算一次避免半屏白
   if (mapState && mapState.map) {
-    requestAnimationFrame(() => mapState.map.resize());
+    resizeMapSoon();
     return;
   }
   let AMap;
@@ -1684,9 +1684,25 @@ async function ensureMap() {
     partnerTs: 0,
     sharing: false,
   };
-  // 初始化后再 resize 一次，确保铺满整个容器
-  requestAnimationFrame(() => map.resize());
-  setTimeout(() => map.resize(), 300);
+  // 高德常见「半屏白」：容器尺寸变化时地图没重算。地图就绪后 + 容器尺寸变化时都重算
+  map.on("complete", resizeMapSoon);
+  const canvas = document.getElementById("mapCanvas");
+  if (canvas && "ResizeObserver" in window) {
+    const ro = new ResizeObserver(() => {
+      if (mapState && mapState.map) mapState.map.resize();
+    });
+    ro.observe(canvas);
+    mapState.ro = ro;
+  }
+  resizeMapSoon();
+}
+
+// 多次错峰 resize，覆盖布局/字体/瓦片加载完成等不同时机
+function resizeMapSoon() {
+  if (!mapState || !mapState.map) return;
+  const r = () => { if (mapState && mapState.map) mapState.map.resize(); };
+  requestAnimationFrame(r);
+  [80, 300, 800].forEach((t) => setTimeout(r, t));
 }
 
 // 高德坐标顺序是 [lng, lat]
