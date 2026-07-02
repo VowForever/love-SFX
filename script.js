@@ -1671,7 +1671,13 @@ async function ensureMap() {
     setMapStatus("地图加载失败：" + err.message);
     return;
   }
-  const map = new AMap.Map("mapCanvas", { zoom: 15, center: [116.4074, 39.9042] });
+  // resizeEnable：让高德自己监听容器尺寸变化并自适应，从根上治「半屏白」
+  const map = new AMap.Map("mapCanvas", {
+    zoom: 15,
+    center: [116.4074, 39.9042],
+    resizeEnable: true,
+    viewMode: "2D",
+  });
   mapState = {
     AMap,
     map,
@@ -1684,7 +1690,7 @@ async function ensureMap() {
     partnerTs: 0,
     sharing: false,
   };
-  // 高德常见「半屏白」：容器尺寸变化时地图没重算。地图就绪后 + 容器尺寸变化时都重算
+  // 地图就绪后 + 容器尺寸变化 + 转屏/窗口变化时都重算，覆盖各种时机
   map.on("complete", resizeMapSoon);
   const canvas = document.getElementById("mapCanvas");
   if (canvas && "ResizeObserver" in window) {
@@ -1694,15 +1700,26 @@ async function ensureMap() {
     ro.observe(canvas);
     mapState.ro = ro;
   }
+  if (!mapState.winResizeBound) {
+    const onWin = () => resizeMapSoon();
+    window.addEventListener("resize", onWin);
+    window.addEventListener("orientationchange", onWin);
+    mapState.winResizeBound = true;
+  }
   resizeMapSoon();
 }
 
-// 多次错峰 resize，覆盖布局/字体/瓦片加载完成等不同时机
+// 多次错峰 resize，覆盖布局/字体/瓦片加载完成等不同时机；resize 前强制回流拿到最新宽度
 function resizeMapSoon() {
   if (!mapState || !mapState.map) return;
-  const r = () => { if (mapState && mapState.map) mapState.map.resize(); };
+  const canvas = document.getElementById("mapCanvas");
+  const r = () => {
+    if (!mapState || !mapState.map) return;
+    if (canvas) void canvas.offsetWidth; // 强制回流，确保读到真实宽度
+    mapState.map.resize();
+  };
   requestAnimationFrame(r);
-  [80, 300, 800].forEach((t) => setTimeout(r, t));
+  [60, 200, 500, 1000, 1800].forEach((t) => setTimeout(r, t));
 }
 
 // 高德坐标顺序是 [lng, lat]
