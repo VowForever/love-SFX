@@ -2108,4 +2108,11 @@ footer {
   border-radius: 8px;
   overflow: hidden;
 }
-.map-canvas .leaflet-container { height: 100%; width: 100%; background: var(--paper); }
+.map-canvas .amap-container,
+.map-canvas > div { height: 100%; width: 100%; background: var(--paper); }
+.map-hint {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}

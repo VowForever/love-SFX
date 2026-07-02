@@ -12,8 +12,7 @@
   <meta name="apple-mobile-web-app-title" content="恋爱手账" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <link rel="icon" type="image/png" href="icon-192.png" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5/dist/mqtt.min.js"></script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -282,12 +281,13 @@
       <div class="section-head">
         <div>
           <div class="section-title"><span class="tiny-icon paw-icon"></span><h2 id="mapTitle">实时位置</h2></div>
-          <p>Demo：显示你的定位，对方光点为模拟数据。真实版会接实时后端。</p>
+          <p>两人填同一房间码、点开始共享，就能在地图上实时看到彼此。粉色是你，橙色是对方。</p>
         </div>
         <button class="primary-btn" id="shareLocBtn">开始共享位置</button>
       </div>
       <div class="map-status" id="mapStatus">未开始</div>
       <div class="map-canvas" id="mapCanvas"></div>
+      <p class="map-hint" id="mapHint">还没配置：请到右上角「设置 ⚙」填高德 Key 和房间码。</p>
     </section>
   </main>
 
@@ -362,6 +362,36 @@
         <button class="secondary-btn" id="ghConnect">连接并拉取</button>
         <button class="secondary-btn" id="ghPushNow">立即上传</button>
         <button class="ghost-btn danger" id="ghDisconnect">断开</button>
+      </div>
+      <div class="settings-divider"></div>
+      <p class="settings-label">实时位置（高德 + MQTT）</p>
+      <p class="settings-desc">两人填<strong>同一个高德 Key 和房间码</strong>，在「位置」页点开始共享即可实时互看。配置只存本机，不写入仓库。位置仅在共享时经公共 MQTT 中转（WSS 加密），关掉即停；房间码请保密。</p>
+      <div class="sync-status" id="locStatus" data-state="off">未连接</div>
+      <label class="field">
+        <span>高德 Key（Web端 JS API）</span>
+        <input type="text" id="locAmapKey" placeholder="在高德开放平台申请，服务平台选 Web端(JS API)" autocomplete="off" />
+      </label>
+      <label class="field">
+        <span>安全密钥 securityJsCode（选填，地图报错再填）</span>
+        <input type="text" id="locAmapSecret" placeholder="高德 key 对应的安全密钥，可留空" autocomplete="off" />
+      </label>
+      <div class="field-row">
+        <label class="field">
+          <span>房间码（两人一致）</span>
+          <input type="text" id="locRoom" placeholder="留空自动生成" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>你的昵称</span>
+          <input type="text" id="locName" placeholder="例如 小周 / 小雪" autocomplete="off" />
+        </label>
+      </div>
+      <label class="field">
+        <span>MQTT Broker（选填，默认公共服务）</span>
+        <input type="text" id="locBroker" placeholder="wss://broker.emqx.io:8084/mqtt" autocomplete="off" />
+      </label>
+      <div class="settings-actions">
+        <button class="secondary-btn" id="locConnect">保存并连接</button>
+        <button class="ghost-btn danger" id="locDisconnect">断开</button>
       </div>
       <div class="settings-divider"></div>
       <p class="settings-label">本地数据管理</p>

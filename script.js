@@ -1563,46 +1563,65 @@ document.querySelectorAll(".side-drawer a").forEach((link) => {
   });
 });
 
-// ===== 实时位置 Demo（Leaflet + OSM，对方为模拟数据）=====
+// ===== 实时位置（高德 + 免费 MQTT，两人固定房间码实时互看）=====
+const LOC_KEY = "kitty-journal-loc-v1";
+const DEFAULT_BROKER = "wss://broker.emqx.io:8084/mqtt";
+const PARTNER_TIMEOUT = 20000; // 对方超过这么久没消息即视为离线
+let locConfig = loadLocConfig();
 let mapState = null;
-const DEFAULT_CENTER = [39.9042, 116.4074]; // 无定位时的默认中心（北京）
+let amapLoading = null;
+let lastPos = null;
 
-function ensureMap() {
-  if (typeof L === "undefined") return;
-  if (mapState) {
-    mapState.map.invalidateSize();
-    return;
+function loadLocConfig() {
+  try {
+    const raw = localStorage.getItem(LOC_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
+  return null;
+}
+function saveLocConfig(cfg) {
+  locConfig = cfg;
+  if (cfg) localStorage.setItem(LOC_KEY, JSON.stringify(cfg));
+  else localStorage.removeItem(LOC_KEY);
+}
+function locConfigured() {
+  return !!(locConfig && locConfig.amapKey && locConfig.room);
+}
+function ensureMyId() {
+  if (!locConfig) return "";
+  if (!locConfig.myId) {
+    locConfig.myId = "u" + Math.random().toString(36).slice(2, 10);
+    saveLocConfig(locConfig);
   }
-  const map = L.map("mapCanvas").setView(DEFAULT_CENTER, 13);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "© OpenStreetMap",
-  }).addTo(map);
+  return locConfig.myId;
+}
 
-  const meIcon = L.divIcon({
-    className: "loc-dot loc-me",
-    html: '<span style="display:block;width:18px;height:18px;border-radius:50%;background:#ef476f;border:3px solid #fff;box-shadow:0 0 0 2px #ef476f;"></span>',
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-  });
-  const paIcon = L.divIcon({
-    className: "loc-dot loc-partner",
-    html: '<span style="display:block;width:18px;height:18px;border-radius:50%;background:#f5a623;border:3px solid #fff;box-shadow:0 0 0 2px #f5a623;"></span>',
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-  });
-
-  mapState = {
-    map,
-    meIcon,
-    paIcon,
-    meMarker: null,
-    paMarker: null,
-    watchId: null,
-    simTimer: null,
-    sharing: false,
+// WGS-84（手机 GPS）→ GCJ-02（高德坐标系），纯数学离线转换，无需联网/安全密钥
+function wgs84ToGcj02(lat, lng) {
+  const a = 6378245.0;
+  const ee = 0.00669342162296594323;
+  if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) return [lat, lng];
+  const tLat = (x, y) => {
+    let r = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+    r += ((20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0) / 3.0;
+    r += ((20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin((y / 3.0) * Math.PI)) * 2.0) / 3.0;
+    r += ((160.0 * Math.sin((y / 12.0) * Math.PI) + 320 * Math.sin((y * Math.PI) / 30.0)) * 2.0) / 3.0;
+    return r;
   };
-  setTimeout(() => map.invalidateSize(), 200);
+  const tLng = (x, y) => {
+    let r = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+    r += ((20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0) / 3.0;
+    r += ((20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin((x / 3.0) * Math.PI)) * 2.0) / 3.0;
+    r += ((150.0 * Math.sin((x / 12.0) * Math.PI) + 300.0 * Math.sin((x / 30.0) * Math.PI)) * 2.0) / 3.0;
+    return r;
+  };
+  const radLat = (lat / 180.0) * Math.PI;
+  let magic = Math.sin(radLat);
+  magic = 1 - ee * magic * magic;
+  const sqrtMagic = Math.sqrt(magic);
+  const dLat = (tLat(lng - 105.0, lat - 35.0) * 180.0) / (((a * (1 - ee)) / (magic * sqrtMagic)) * Math.PI);
+  const dLng = (tLng(lng - 105.0, lat - 35.0) * 180.0) / ((a / sqrtMagic) * Math.cos(radLat) * Math.PI);
+  return [lat + dLat, lng + dLng];
 }
 
 function setMapStatus(text) {
@@ -1610,64 +1629,186 @@ function setMapStatus(text) {
   if (el) el.textContent = text;
 }
 
-function placeMe(lat, lng) {
-  if (!mapState) return;
-  if (!mapState.meMarker) {
-    mapState.meMarker = L.marker([lat, lng], { icon: mapState.meIcon })
-      .addTo(mapState.map)
-      .bindPopup("我");
-  } else {
-    mapState.meMarker.setLatLng([lat, lng]);
+function loadAMap() {
+  if (window.AMap) return Promise.resolve(window.AMap);
+  if (amapLoading) return amapLoading;
+  if (!locConfigured()) return Promise.reject(new Error("未配置高德 Key"));
+  if (locConfig.amapSecret) {
+    window._AMapSecurityConfig = { securityJsCode: locConfig.amapSecret };
   }
-  mapState.map.setView([lat, lng], 15);
-  startPartnerSim(lat, lng);
+  amapLoading = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(locConfig.amapKey)}`;
+    s.async = true;
+    s.onload = () => (window.AMap ? resolve(window.AMap) : reject(new Error("高德加载异常")));
+    s.onerror = () => { amapLoading = null; reject(new Error("高德脚本加载失败")); };
+    document.head.appendChild(s);
+  });
+  return amapLoading;
 }
 
-function startPartnerSim(lat, lng) {
-  if (!mapState) return;
-  // 对方初始落在我附近 ~200m
-  let pLat = lat + (Math.random() - 0.5) * 0.004;
-  let pLng = lng + (Math.random() - 0.5) * 0.004;
-  const drawPartner = () => {
-    if (!mapState.paMarker) {
-      mapState.paMarker = L.marker([pLat, pLng], { icon: mapState.paIcon })
-        .addTo(mapState.map)
-        .bindPopup("对方（模拟）");
-    } else {
-      mapState.paMarker.setLatLng([pLat, pLng]);
-    }
+function dotContent(color) {
+  return `<span style="display:block;width:18px;height:18px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 0 2px ${color};"></span>`;
+}
+
+async function ensureMap() {
+  const hint = document.getElementById("mapHint");
+  if (!locConfigured()) {
+    if (hint) hint.hidden = false;
+    setMapStatus("未配置");
+    return;
+  }
+  if (hint) hint.hidden = true;
+  if (mapState && mapState.map) return;
+  let AMap;
+  try {
+    AMap = await loadAMap();
+  } catch (err) {
+    setMapStatus("地图加载失败：" + err.message);
+    return;
+  }
+  const map = new AMap.Map("mapCanvas", { zoom: 15, center: [116.4074, 39.9042] });
+  mapState = {
+    AMap,
+    map,
+    meMarker: null,
+    paMarker: null,
+    watchId: null,
+    mqtt: null,
+    hbTimer: null,
+    offTimer: null,
+    partnerTs: 0,
+    sharing: false,
   };
-  drawPartner();
-  if (mapState.simTimer) clearInterval(mapState.simTimer);
-  mapState.simTimer = setInterval(() => {
-    pLat += (Math.random() - 0.5) * 0.0009;
-    pLng += (Math.random() - 0.5) * 0.0009;
-    drawPartner();
-  }, 2000);
 }
 
-function startShare() {
-  if (!mapState) return;
+// 高德坐标顺序是 [lng, lat]
+function upsertMarker(which, gcjLat, gcjLng, title, color) {
+  if (!mapState || !mapState.map) return;
+  const pos = [gcjLng, gcjLat];
+  const key = which === "me" ? "meMarker" : "paMarker";
+  if (!mapState[key]) {
+    mapState[key] = new mapState.AMap.Marker({
+      position: pos,
+      title,
+      content: dotContent(color),
+      offset: new mapState.AMap.Pixel(-9, -9),
+    });
+    mapState.map.add(mapState[key]);
+  } else {
+    mapState[key].setPosition(pos);
+  }
+}
+
+function placeMe(wgsLat, wgsLng, center) {
+  const [gLat, gLng] = wgs84ToGcj02(wgsLat, wgsLng);
+  upsertMarker("me", gLat, gLng, "我", "#ef476f");
+  if (center && mapState && mapState.map) mapState.map.setCenter([gLng, gLat]);
+}
+
+function showPartner(wgsLat, wgsLng, name) {
+  const [gLat, gLng] = wgs84ToGcj02(wgsLat, wgsLng);
+  upsertMarker("pa", gLat, gLng, name || "对方", "#f5a623");
+}
+
+function clearPartner() {
+  if (mapState && mapState.paMarker) {
+    mapState.map.remove(mapState.paMarker);
+    mapState.paMarker = null;
+  }
+}
+
+function locTopic() {
+  return `lovejournal/${locConfig.room}/pos`;
+}
+
+function connectMqtt() {
+  if (typeof mqtt === "undefined") {
+    setMapStatus("消息库未加载，请检查网络");
+    return;
+  }
+  const myId = ensureMyId();
+  const broker = (locConfig.broker || DEFAULT_BROKER).trim();
+  const myTopic = `${locTopic()}/${myId}`;
+  const client = mqtt.connect(broker, {
+    clientId: myId,
+    clean: true,
+    reconnectPeriod: 3000,
+    will: { topic: myTopic, payload: JSON.stringify({ id: myId, offline: true }), qos: 0, retain: true },
+  });
+  mapState.mqtt = client;
+  client.on("connect", () => {
+    setMapStatus("已连接 · 等待对方…");
+    client.subscribe(`${locTopic()}/+`);
+  });
+  client.on("message", (topic, buf) => {
+    let msg;
+    try { msg = JSON.parse(buf.toString()); } catch (_) { return; }
+    if (!msg || msg.id === myId) return; // 忽略自己
+    if (msg.offline) { clearPartner(); setMapStatus("共享中 · 对方离线"); return; }
+    if (typeof msg.lat === "number" && typeof msg.lng === "number") {
+      mapState.partnerTs = Date.now();
+      showPartner(msg.lat, msg.lng, msg.name);
+      setMapStatus(`共享中 · 对方在线${msg.name ? "：" + msg.name : ""}`);
+    }
+  });
+  client.on("error", () => setMapStatus("连接出错，重试中…"));
+}
+
+function publishMyPos(wgsLat, wgsLng, acc) {
+  if (!mapState || !mapState.mqtt || !mapState.mqtt.connected) return;
+  const myId = ensureMyId();
+  const payload = JSON.stringify({
+    id: myId,
+    name: locConfig.name || "",
+    lat: wgsLat,
+    lng: wgsLng,
+    acc: acc || 0,
+    ts: Date.now(),
+  });
+  mapState.mqtt.publish(`${locTopic()}/${myId}`, payload, { retain: true });
+}
+
+async function startShare() {
+  if (!locConfigured()) {
+    showToast("请先到设置里填高德 Key 和房间码");
+    els.settingsPanel.hidden = false;
+    fillLocForm();
+    return;
+  }
+  await ensureMap();
+  if (!mapState || !mapState.map) return;
   mapState.sharing = true;
   const btn = document.getElementById("shareLocBtn");
   if (btn) btn.textContent = "停止共享";
-  setMapStatus("正在获取定位…");
+  setMapStatus("正在连接与定位…");
+  connectMqtt();
+  // 心跳：即使没移动也定期广播最后位置，让对方判定我在线
+  mapState.hbTimer = setInterval(() => {
+    if (lastPos) publishMyPos(lastPos[0], lastPos[1], lastPos[2]);
+  }, 5000);
+  // 对方离线检测
+  mapState.offTimer = setInterval(() => {
+    if (mapState.partnerTs && Date.now() - mapState.partnerTs > PARTNER_TIMEOUT) {
+      clearPartner();
+      setMapStatus("共享中 · 对方离线");
+    }
+  }, 5000);
   if (navigator.geolocation) {
     mapState.watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        placeMe(pos.coords.latitude, pos.coords.longitude);
-        setMapStatus("共享中 · 对方在线（模拟）");
+      (p) => {
+        lastPos = [p.coords.latitude, p.coords.longitude, p.coords.accuracy];
+        placeMe(lastPos[0], lastPos[1], true);
+        publishMyPos(lastPos[0], lastPos[1], lastPos[2]);
       },
       () => {
-        setMapStatus("定位不可用 · 已用默认位置 · 对方在线（模拟）");
-        showToast("无法获取定位，已使用默认位置");
-        placeMe(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+        showToast("无法获取定位，请检查定位权限");
+        setMapStatus("定位不可用 · 请开启定位权限");
       },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     );
   } else {
-    setMapStatus("此设备不支持定位 · 已用默认位置 · 对方在线（模拟）");
-    placeMe(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
+    setMapStatus("此设备不支持定位");
   }
 }
 
@@ -1680,27 +1821,86 @@ function stopShare() {
     navigator.geolocation.clearWatch(mapState.watchId);
     mapState.watchId = null;
   }
-  if (mapState.simTimer) {
-    clearInterval(mapState.simTimer);
-    mapState.simTimer = null;
+  if (mapState.hbTimer) { clearInterval(mapState.hbTimer); mapState.hbTimer = null; }
+  if (mapState.offTimer) { clearInterval(mapState.offTimer); mapState.offTimer = null; }
+  if (mapState.mqtt) {
+    const myId = ensureMyId();
+    try {
+      mapState.mqtt.publish(`${locTopic()}/${myId}`, JSON.stringify({ id: myId, offline: true }), { retain: true });
+    } catch (_) {}
+    mapState.mqtt.end(true);
+    mapState.mqtt = null;
   }
-  if (mapState.paMarker) {
-    mapState.map.removeLayer(mapState.paMarker);
-    mapState.paMarker = null;
-  }
+  clearPartner();
   setMapStatus("已停止");
 }
 
 const shareLocBtn = document.getElementById("shareLocBtn");
 if (shareLocBtn) {
   shareLocBtn.addEventListener("click", () => {
-    ensureMap();
-    if (!mapState) {
-      showToast("地图加载失败，请检查网络后重试");
+    if (mapState && mapState.sharing) stopShare();
+    else startShare();
+  });
+}
+
+// ---- 实时位置设置面板接线 ----
+function setLocStatus(state, text) {
+  const el = document.getElementById("locStatus");
+  if (!el) return;
+  el.dataset.state = state;
+  el.textContent = text;
+}
+
+function fillLocForm() {
+  const room = document.getElementById("locRoom");
+  const key = document.getElementById("locAmapKey");
+  const secret = document.getElementById("locAmapSecret");
+  const name = document.getElementById("locName");
+  const broker = document.getElementById("locBroker");
+  if (locConfig) {
+    if (key) key.value = locConfig.amapKey || "";
+    if (secret) secret.value = locConfig.amapSecret || "";
+    if (room) room.value = locConfig.room || "";
+    if (name) name.value = locConfig.name || "";
+    if (broker) broker.value = locConfig.broker || "";
+  }
+  // 房间码为空时预填一个随机串，方便两人复制成同一个
+  if (room && !room.value) room.value = "love-" + Math.random().toString(36).slice(2, 10);
+  setLocStatus(locConfigured() ? "on" : "off", locConfigured() ? "已配置" : "未连接");
+}
+
+const locConnectBtn = document.getElementById("locConnect");
+if (locConnectBtn) {
+  locConnectBtn.addEventListener("click", () => {
+    const amapKey = document.getElementById("locAmapKey").value.trim();
+    const room = document.getElementById("locRoom").value.trim();
+    if (!amapKey || !room) {
+      showToast("请填写高德 Key 和房间码");
       return;
     }
-    if (mapState.sharing) stopShare();
-    else startShare();
+    const cfg = {
+      amapKey,
+      amapSecret: document.getElementById("locAmapSecret").value.trim(),
+      room,
+      name: document.getElementById("locName").value.trim(),
+      broker: document.getElementById("locBroker").value.trim(),
+      myId: (locConfig && locConfig.myId) || "u" + Math.random().toString(36).slice(2, 10),
+    };
+    saveLocConfig(cfg);
+    setLocStatus("on", "已保存");
+    showToast("实时位置已配置，去「位置」页开始共享吧");
+    const hint = document.getElementById("mapHint");
+    if (hint) hint.hidden = true;
+  });
+}
+
+const locDisconnectBtn = document.getElementById("locDisconnect");
+if (locDisconnectBtn) {
+  locDisconnectBtn.addEventListener("click", () => {
+    if (mapState && mapState.sharing) stopShare();
+    saveLocConfig(null);
+    setLocStatus("off", "未连接");
+    showToast("已断开实时位置");
   });
 }
 
@@ -1713,6 +1913,7 @@ els.themeToggle.addEventListener("click", () => {
 
 els.settingsBtn.addEventListener("click", () => {
   els.settingsPanel.hidden = false;
+  fillLocForm();
 });
 els.settingsClose.addEventListener("click", () => {
   els.settingsPanel.hidden = true;
