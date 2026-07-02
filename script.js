@@ -1659,7 +1659,11 @@ async function ensureMap() {
     return;
   }
   if (hint) hint.hidden = true;
-  if (mapState && mapState.map) return;
+  // 容器之前是 display:none，切到本视图后尺寸才就绪，重算一次避免半屏白
+  if (mapState && mapState.map) {
+    requestAnimationFrame(() => mapState.map.resize());
+    return;
+  }
   let AMap;
   try {
     AMap = await loadAMap();
@@ -1680,6 +1684,9 @@ async function ensureMap() {
     partnerTs: 0,
     sharing: false,
   };
+  // 初始化后再 resize 一次，确保铺满整个容器
+  requestAnimationFrame(() => map.resize());
+  setTimeout(() => map.resize(), 300);
 }
 
 // 高德坐标顺序是 [lng, lat]
@@ -1733,13 +1740,17 @@ function connectMqtt() {
   const client = mqtt.connect(broker, {
     clientId: myId,
     clean: true,
-    reconnectPeriod: 3000,
+    reconnectPeriod: 4000,
+    connectTimeout: 8000,
     will: { topic: myTopic, payload: JSON.stringify({ id: myId, offline: true }), qos: 0, retain: true },
   });
   mapState.mqtt = client;
   client.on("connect", () => {
     setMapStatus("已连接 · 等待对方…");
     client.subscribe(`${locTopic()}/+`);
+  });
+  client.on("reconnect", () => {
+    if (!client.connected) setMapStatus("连接中…（正在重连服务器）");
   });
   client.on("message", (topic, buf) => {
     let msg;
@@ -1752,7 +1763,9 @@ function connectMqtt() {
       setMapStatus(`共享中 · 对方在线${msg.name ? "：" + msg.name : ""}`);
     }
   });
-  client.on("error", () => setMapStatus("连接出错，重试中…"));
+  client.on("error", () => {
+    if (!client.connected) setMapStatus("连接服务器失败，重试中…（可在设置换个 MQTT Broker）");
+  });
 }
 
 function publishMyPos(wgsLat, wgsLng, acc) {
