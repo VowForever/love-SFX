@@ -1,4 +1,4 @@
-const CACHE = "lovejournal-v1";
+const CACHE = "lovejournal-v2";
 const IMG_CACHE = "lovejournal-img-v1";
 const KEEP = [CACHE, IMG_CACHE];
 const SHELL = [

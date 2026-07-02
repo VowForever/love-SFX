@@ -1695,9 +1695,7 @@ async function ensureMap() {
   map.on("complete", resizeMapSoon);
   const canvas = document.getElementById("mapCanvas");
   if (canvas && "ResizeObserver" in window) {
-    const ro = new ResizeObserver(() => {
-      if (mapState && mapState.map) mapState.map.resize();
-    });
+    const ro = new ResizeObserver(() => triggerMapResize());
     ro.observe(canvas);
     mapState.ro = ro;
   }
@@ -1710,14 +1708,23 @@ async function ensureMap() {
   resizeMapSoon();
 }
 
-// 多次错峰 resize，覆盖布局/字体/瓦片加载完成等不同时机；resize 前强制回流拿到最新宽度
+// 1.4.x 的 Map 没有 resize()，重算尺寸的方法是 triggerResize()；2.0 才是 resize()。
+// 两版本都兼容：优先 triggerResize，回退 resize。
+function triggerMapResize() {
+  if (!mapState || !mapState.map) return;
+  const m = mapState.map;
+  if (typeof m.triggerResize === "function") m.triggerResize();
+  else if (typeof m.resize === "function") m.resize();
+}
+
+// 多次错峰重算，覆盖布局/字体/瓦片加载完成等不同时机；重算前强制回流拿到最新宽度
 function resizeMapSoon() {
   if (!mapState || !mapState.map) return;
   const canvas = document.getElementById("mapCanvas");
   const r = () => {
     if (!mapState || !mapState.map) return;
     if (canvas) void canvas.offsetWidth; // 强制回流，确保读到真实宽度
-    mapState.map.resize();
+    triggerMapResize();
   };
   requestAnimationFrame(r);
   [60, 200, 500, 1000, 1800].forEach((t) => setTimeout(r, t));
