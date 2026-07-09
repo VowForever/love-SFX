@@ -5,6 +5,15 @@ const SITE_DATA = {
   },
   "diaries": [
     {
+      "id": "dmrcvxe4b6xik",
+      "date": "2026-07-08",
+      "kind": "home",
+      "title": "爱心茉莉葡萄",
+      "content": "小雪吃葡萄吃到隐藏款了🤫\n什么隐藏款呢\n是爱心❤️葡萄🍇哎",
+      "mood": "🌸🌸🌸🌸🌸",
+      "image": "img_mrcvxc4yxrkv.jpg"
+    },
+    {
       "id": "dmr1zguglg4s2",
       "date": "2026-06-27",
       "kind": "travel",
@@ -82,7 +91,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1783552201119,
+  "_updatedAt": 1783563953339,
   "recipes": [
     {
       "id": "rmqjn21096auy",
