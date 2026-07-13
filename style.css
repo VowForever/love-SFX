@@ -541,13 +541,17 @@ body.night .settings-panel {
 .love-count strong {
   display: inline-block;
   color: var(--orange);
-  font-size: clamp(54px, 9vw, 86px);
+  font-size: clamp(64px, 12vw, 110px);
   line-height: 1;
   transform: rotate(-4deg);
 }
 
 .milestone-banner {
+  display: table;
+  width: auto;
+  max-width: 100%;
   margin: 0 auto 18px;
+  text-align: center;
   padding: 10px 22px;
   border: 2px solid var(--line);
   border-radius: 999px;
