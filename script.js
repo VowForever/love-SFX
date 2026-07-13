@@ -25,6 +25,9 @@ let modalContext = null;
 
 const els = {
   daysTogether: document.getElementById("daysTogether"),
+  milestoneBanner: document.getElementById("milestoneBanner"),
+  confettiLayer: document.getElementById("confettiLayer"),
+  heroCard: document.querySelector(".hero-card"),
   loveLive: document.getElementById("loveLive"),
   relatedDays: document.getElementById("relatedDays"),
   startDateText: document.getElementById("startDateText"),
@@ -158,6 +161,42 @@ function renderAll() {
   els.year.textContent = today.getFullYear();
 }
 
+function getMilestone(start, days) {
+  if (days === 100) return { label: "在一起 100 天啦", emoji: "💯" };
+  const years = today.getFullYear() - start.getFullYear();
+  if (
+    years >= 1 &&
+    today.getMonth() === start.getMonth() &&
+    today.getDate() === start.getDate()
+  ) {
+    return { label: `在一起 ${years} 周年快乐`, emoji: "❤️" };
+  }
+  return null;
+}
+
+function launchConfetti() {
+  const layer = els.confettiLayer;
+  if (!layer) return;
+  layer.innerHTML = "";
+  const emojis = ["💗", "💖", "🌸", "💕", "✨", "🩷"];
+  for (let i = 0; i < 42; i++) {
+    const s = document.createElement("span");
+    s.className = "confetti-heart";
+    s.textContent = emojis[i % emojis.length];
+    s.style.left = Math.random() * 100 + "vw";
+    s.style.fontSize = 14 + Math.random() * 22 + "px";
+    s.style.animationDuration = 3 + Math.random() * 3 + "s";
+    s.style.animationDelay = Math.random() * 2 + "s";
+    layer.appendChild(s);
+  }
+  clearTimeout(launchConfetti.t);
+  launchConfetti.t = setTimeout(() => {
+    layer.innerHTML = "";
+  }, 12000);
+}
+
+let milestoneShown = false;
+
 function renderHero() {
   const start = getStartDate();
   const days = Math.max(1, daysBetween(start, today) + 1);
@@ -168,6 +207,22 @@ function renderHero() {
     `从 ${start.getFullYear()} 年 ${String(start.getMonth() + 1).padStart(2, "0")} 月 ${String(start.getDate()).padStart(2, "0")} 日开始收藏粉色回忆`;
   els.settingStartDate.value = data.settings.startDate;
   els.settingSubtitle.value = data.settings.subtitle || "";
+
+  const milestone = getMilestone(start, days);
+  if (els.heroCard) els.heroCard.classList.toggle("milestone", !!milestone);
+  if (els.milestoneBanner) {
+    if (milestone) {
+      els.milestoneBanner.textContent = `${milestone.emoji} ${milestone.label} ${milestone.emoji}`;
+      els.milestoneBanner.hidden = false;
+    } else {
+      els.milestoneBanner.hidden = true;
+    }
+  }
+  if (milestone && !milestoneShown) {
+    milestoneShown = true;
+    launchConfetti();
+  }
+
   tickLoveTimer();
 }
 
