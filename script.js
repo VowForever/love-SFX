@@ -74,7 +74,66 @@ const els = {
   modalClose: document.getElementById("modalClose"),
   modalCancel: document.getElementById("modalCancel"),
   toast: document.getElementById("toast"),
+  loveCountLabel: document.getElementById("loveCountLabel"),
+  loveCountUnit: document.getElementById("loveCountUnit"),
+  festivalCountdown: document.getElementById("festivalCountdown"),
 };
+
+/* ---------------- 农历工具（1900-2100 查表换算） ---------------- */
+const LUNAR_INFO = [
+  0x04bd8, 0x04ae0, 0x0a570, 0x054d5, 0x0d260, 0x0d950, 0x16554, 0x056a0, 0x09ad0, 0x055d2,
+  0x04ae0, 0x0a5b6, 0x0a4d0, 0x0d250, 0x1d255, 0x0b540, 0x0d6a0, 0x0ada2, 0x095b0, 0x14977,
+  0x04970, 0x0a4b0, 0x0b4b5, 0x06a50, 0x06d40, 0x1ab54, 0x02b60, 0x09570, 0x052f2, 0x04970,
+  0x06566, 0x0d4a0, 0x0ea50, 0x06e95, 0x05ad0, 0x02b60, 0x186e3, 0x092e0, 0x1c8d7, 0x0c950,
+  0x0d4a0, 0x1d8a6, 0x0b550, 0x056a0, 0x1a5b4, 0x025d0, 0x092d0, 0x0d2b2, 0x0a950, 0x0b557,
+  0x06ca0, 0x0b550, 0x15355, 0x04da0, 0x0a5b0, 0x14573, 0x052b0, 0x0a9a8, 0x0e950, 0x06aa0,
+  0x0aea6, 0x0ab50, 0x04b60, 0x0aae4, 0x0a570, 0x05260, 0x0f263, 0x0d950, 0x05b57, 0x056a0,
+  0x096d0, 0x04dd5, 0x04ad0, 0x0a4d0, 0x0d4d4, 0x0d250, 0x0d558, 0x0b540, 0x0b6a0, 0x195a6,
+  0x095b0, 0x049b0, 0x0a974, 0x0a4b0, 0x0b27a, 0x06a50, 0x06d40, 0x0af46, 0x0ab60, 0x09570,
+  0x04af5, 0x04970, 0x064b0, 0x074a3, 0x0ea50, 0x06b58, 0x055c0, 0x0ab60, 0x096d5, 0x092e0,
+  0x0c960, 0x0d954, 0x0d4a0, 0x0da50, 0x07552, 0x056a0, 0x0abb7, 0x025d0, 0x092d0, 0x0cab5,
+  0x0a950, 0x0b4a0, 0x0baa4, 0x0ad50, 0x055d9, 0x04ba0, 0x0a5b0, 0x15176, 0x052b0, 0x0a930,
+  0x07954, 0x06aa0, 0x0ad50, 0x05b52, 0x04b60, 0x0a6e6, 0x0a4e0, 0x0d260, 0x0ea65, 0x0d530,
+  0x05aa0, 0x076a3, 0x096d0, 0x04afb, 0x04ad0, 0x0a4d0, 0x1d0b6, 0x0d250, 0x0d520, 0x0dd45,
+  0x0b5a0, 0x056d0, 0x055b2, 0x049b0, 0x0a577, 0x0a4b0, 0x0aa50, 0x1b255, 0x06d20, 0x0ada0,
+  0x14b63, 0x09370, 0x049f8, 0x04970, 0x064b0, 0x168a6, 0x0ea50, 0x06b20, 0x1a6c4, 0x0aae0,
+  0x0a2e0, 0x0d2e3, 0x0c960, 0x0d557, 0x0d4a0, 0x0da50, 0x05d55, 0x056a0, 0x0a6d0, 0x055d4,
+  0x052d0, 0x0a9b8, 0x0a950, 0x0b4a0, 0x0b6a6, 0x0ad50, 0x055a0, 0x0aba4, 0x0a5b0, 0x052b0,
+  0x0b273, 0x06930, 0x07337, 0x06aa0, 0x0ad50, 0x14b55, 0x04b60, 0x0a570, 0x054e4, 0x0d160,
+  0x0e968, 0x0d520, 0x0daa0, 0x16aa6, 0x056d0, 0x04ae0, 0x0a9d4, 0x0a2d0, 0x0d150, 0x0f252,
+  0x0d520,
+];
+
+function lunarLeapMonth(y) {
+  return LUNAR_INFO[y - 1900] & 0xf;
+}
+function lunarLeapDays(y) {
+  if (lunarLeapMonth(y)) {
+    return (LUNAR_INFO[y - 1900] & 0x10000) ? 30 : 29;
+  }
+  return 0;
+}
+function lunarMonthDays(y, m) {
+  return (LUNAR_INFO[y - 1900] & (0x10000 >> m)) ? 30 : 29;
+}
+function lunarYearDays(y) {
+  let sum = 348;
+  for (let i = 0x8000; i > 0x8; i >>= 1) {
+    sum += (LUNAR_INFO[y - 1900] & i) ? 1 : 0;
+  }
+  return sum + lunarLeapDays(y);
+}
+// 农历 (y 年 m 月 d 日) → 公历 Date（本地时区，1900-2100 有效；闰月按正月序不计闰）
+function lunarToSolar(y, m, d) {
+  let offset = 0;
+  for (let i = 1900; i < y; i++) offset += lunarYearDays(i);
+  for (let i = 1; i < m; i++) offset += lunarMonthDays(y, i);
+  const leap = lunarLeapMonth(y);
+  if (leap && leap < m) offset += lunarLeapDays(y);
+  offset += d - 1;
+  const base = new Date(1900, 0, 31); // 1900-01-31 = 农历 1900 年正月初一
+  return new Date(base.getTime() + offset * msPerDay);
+}
 
 function normalizeData(d) {
   d.diaries = d.diaries || [];
@@ -87,6 +146,8 @@ function normalizeData(d) {
   d.cats = d.cats || [];
   d.catProfile = d.catProfile || {};
   d.catHealth = d.catHealth || [];
+  d.settings = d.settings || {};
+  d.settings.festivals = d.settings.festivals || (SITE_DATA.settings.festivals || []);
   return d;
 }
 
@@ -174,6 +235,47 @@ function getMilestone(start, days) {
   return null;
 }
 
+/* ---------------- 节日（农历生日 / 传统节日） ---------------- */
+function sameDay(a, b) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function getFestivals() {
+  return (data.settings && data.settings.festivals) || [];
+}
+
+function festivalSolarDate(f, year) {
+  return lunarToSolar(year, f.lunarMonth, f.lunarDay);
+}
+
+// 今天命中的节日（用于当天专属界面）
+function getTodayFestival() {
+  for (const f of getFestivals()) {
+    if (sameDay(festivalSolarDate(f, today.getFullYear()), today)) return f;
+  }
+  return null;
+}
+
+// 最近的下一个节日（用于倒计时预告）
+function getUpcomingFestival() {
+  let best = null;
+  for (const f of getFestivals()) {
+    let solar = festivalSolarDate(f, today.getFullYear());
+    if (!sameDay(solar, today) && solar < today) {
+      solar = festivalSolarDate(f, today.getFullYear() + 1);
+    }
+    const daysLeft = daysBetween(today, solar);
+    if (!best || daysLeft < best.daysLeft) {
+      best = { festival: f, date: solar, daysLeft };
+    }
+  }
+  return best;
+}
+
 function launchConfetti() {
   const layer = els.confettiLayer;
   if (!layer) return;
@@ -196,11 +298,11 @@ function launchConfetti() {
 }
 
 let milestoneShown = false;
+let festivalShown = false;
 
 function renderHero() {
   const start = getStartDate();
   const days = Math.max(1, daysBetween(start, today) + 1);
-  els.daysTogether.textContent = days;
   els.relatedDays.textContent = days;
   els.startDateText.textContent =
     data.settings.subtitle ||
@@ -217,6 +319,35 @@ function renderHero() {
     } else {
       els.milestoneBanner.hidden = true;
     }
+  }
+
+  const festival = getTodayFestival();
+  if (els.heroCard) els.heroCard.classList.toggle("festival", !!festival);
+  if (festival) {
+    // 当天命中节日 → 天数数字换成节日专属展示
+    if (els.loveCountLabel) els.loveCountLabel.textContent = festival.emoji;
+    if (els.daysTogether) els.daysTogether.textContent = festival.title;
+    if (els.loveCountUnit) els.loveCountUnit.textContent = festival.sub;
+    if (els.festivalCountdown) els.festivalCountdown.hidden = true;
+  } else {
+    // 非节日 → 恢复天数，并预告最近的下一个节日
+    if (els.loveCountLabel) els.loveCountLabel.textContent = "甜心陪伴第";
+    if (els.daysTogether) els.daysTogether.textContent = days;
+    if (els.loveCountUnit) els.loveCountUnit.textContent = "天";
+    const upcoming = getUpcomingFestival();
+    if (els.festivalCountdown) {
+      if (upcoming) {
+        els.festivalCountdown.textContent = `${upcoming.festival.emoji} 距「${upcoming.festival.name}」还有 ${upcoming.daysLeft} 天`;
+        els.festivalCountdown.hidden = false;
+      } else {
+        els.festivalCountdown.hidden = true;
+      }
+    }
+  }
+
+  if (festival && !festivalShown) {
+    festivalShown = true;
+    launchConfetti();
   }
   if (milestone && !milestoneShown) {
     milestoneShown = true;

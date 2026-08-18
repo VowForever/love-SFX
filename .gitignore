@@ -3,3 +3,7 @@
 
 # 临时目录
 /.cowork-temp/
+/.tmpfiles/
+
+# 本地数据备份
+/data.local-backup-*.js
