@@ -1570,9 +1570,18 @@ const mainSections = Array.from(document.querySelector("main").children);
 function showView(name) {
   const view = VIEWS[name] ? name : "home";
   const selectors = VIEWS[view];
+  let shownIndex = 0;
   mainSections.forEach((sec) => {
     const shown = selectors.some((sel) => sec.matches(sel));
     sec.classList.toggle("view-off", !shown);
+    if (shown) {
+      // 视图切换入场：重放入场动画，同屏多区块错峰
+      sec.classList.remove("view-enter");
+      void sec.offsetWidth;
+      sec.style.animationDelay = Math.min(shownIndex * 90, 270) + "ms";
+      sec.classList.add("view-enter");
+      shownIndex++;
+    }
   });
   const primaryViews = ["home", "diary", "recipes", "wishlist"];
   document.querySelectorAll(".tab-item[data-view]").forEach((btn) => {

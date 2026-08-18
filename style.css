@@ -1,17 +1,22 @@
 :root {
-  --paper: #fffbfd;
-  --paper-deep: #ffeef4;
-  --ink: #3f3536;
-  --muted: #97787f;
-  --line: #6f5760;
-  --orange: #e56a86;
-  --pink: #ffc7d5;
-  --pink-soft: #ffe8f0;
-  --mint: #dff7ef;
-  --blue: #dff5ff;
-  --lemon: #fff4a8;
-  --ribbon: #e93458;
-  --shadow: 0 16px 38px rgba(188, 70, 100, 0.16);
+  --paper: #f8f4f0;
+  --paper-deep: #f0e8e1;
+  --ink: #443c3e;
+  --muted: #a59693;
+  --line: #6b5a5e;
+  --line-soft: #e9e0da;
+  --orange: #d48a9e;
+  --pink: #f0cdd7;
+  --pink-soft: #f7e7ec;
+  --mint: #d9e9e2;
+  --blue: #d9e6ee;
+  --lemon: #f2e7c6;
+  --ribbon: #c97b93;
+  --shadow: 0 18px 44px rgba(90, 75, 80, 0.10);
+  --shadow-soft: 0 6px 20px rgba(90, 75, 80, 0.06);
+  --radius-lg: 26px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
 }
 
 * {
@@ -29,31 +34,34 @@ body {
   font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
   line-height: 1.7;
   background:
-    radial-gradient(circle at 11% 18%, rgba(239, 71, 111, 0.1) 0 9px, transparent 10px),
-    radial-gradient(circle at 88% 24%, rgba(255, 184, 202, 0.26) 0 7px, transparent 8px),
-    radial-gradient(circle at 18% 78%, rgba(255, 244, 168, 0.34) 0 8px, transparent 9px),
-    linear-gradient(180deg, #ffffff, var(--paper));
+    radial-gradient(ellipse 62% 46% at 12% 8%, rgba(212, 138, 158, 0.20), transparent 62%),
+    radial-gradient(ellipse 55% 42% at 90% 14%, rgba(167, 196, 216, 0.22), transparent 60%),
+    radial-gradient(ellipse 52% 46% at 14% 90%, rgba(217, 233, 226, 0.24), transparent 56%),
+    radial-gradient(ellipse 55% 44% at 88% 84%, rgba(242, 231, 198, 0.22), transparent 56%),
+    linear-gradient(180deg, #fbf8f6, #f3ece7);
   min-height: 100vh;
 }
 
 body.night {
-  --paper: #302228;
-  --paper-deep: #442b34;
-  --ink: #fff7fb;
-  --muted: #e4bbc8;
-  --line: #fff0f5;
-  --orange: #ff6b8d;
-  --pink: #f49ab1;
-  --pink-soft: #55313d;
-  --mint: #335149;
-  --blue: #344f5b;
-  --lemon: #6d6338;
-  --ribbon: #ff5f82;
-  --shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+  --paper: #2b2529;
+  --paper-deep: #38303a;
+  --ink: #f4edf0;
+  --muted: #c3aeb5;
+  --line: #d8c6cd;
+  --line-soft: #4a4146;
+  --orange: #e39aad;
+  --pink: #b98a97;
+  --pink-soft: #46303a;
+  --mint: #33483f;
+  --blue: #344650;
+  --lemon: #554d34;
+  --ribbon: #d98ba0;
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.30);
+  --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.22);
   background:
-    radial-gradient(circle at 12% 12%, rgba(255, 107, 141, 0.2), transparent 25%),
-    radial-gradient(circle at 85% 75%, rgba(244, 154, 177, 0.16), transparent 30%),
-    linear-gradient(180deg, #211b20, #35242b);
+    radial-gradient(ellipse 60% 45% at 12% 10%, rgba(227, 154, 173, 0.20), transparent 60%),
+    radial-gradient(ellipse 55% 42% at 90% 80%, rgba(120, 150, 165, 0.18), transparent 58%),
+    linear-gradient(180deg, #211c20, #2b2529);
 }
 
 button,
@@ -540,10 +548,14 @@ body.night .settings-panel {
 
 .love-count strong {
   display: inline-block;
-  color: var(--orange);
   font-size: clamp(64px, 12vw, 110px);
   line-height: 1;
   transform: rotate(-4deg);
+  background: linear-gradient(120deg, #d48a9e 0%, #c97b93 50%, #b98798 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .milestone-banner {
@@ -565,8 +577,11 @@ body.night .settings-panel {
 }
 
 .hero-card.milestone .love-count strong {
-  color: #f5a623;
-  text-shadow: 0 0 14px rgba(245, 166, 35, 0.55);
+  background: linear-gradient(120deg, #f5a623, #ffcf6b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
   animation: ms-beat 1.1s ease-in-out infinite;
 }
 
@@ -2175,4 +2190,353 @@ footer {
   font-size: 13px;
   color: var(--muted);
   line-height: 1.6;
+}
+
+/* ============================================================
+   清爽质感层 —— 弱描边 · 柔阴影 · 大圆角 · 留白 · 微动效
+   覆盖在可爱手账风之上，重塑视觉质感，减少长时间浏览的疲劳
+   ============================================================ */
+
+/* ---- 内容卡片容器：去粗描边，统一奶油白磨砂底 ---- */
+.hero-card,
+.upcoming,
+.quick-entry,
+.diary-section,
+.wish-section,
+.album-section,
+.notes-section,
+.schedule-section,
+.recipe-section,
+.cat-section,
+.map-section {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.70));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 56px rgba(90, 75, 80, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+body.night .hero-card,
+body.night .upcoming,
+body.night .quick-entry,
+body.night .diary-section,
+body.night .wish-section,
+body.night .album-section,
+body.night .notes-section,
+body.night .schedule-section,
+body.night .recipe-section,
+body.night .cat-section,
+body.night .map-section {
+  background: linear-gradient(135deg, rgba(52, 45, 49, 0.96), rgba(45, 39, 43, 0.82));
+  border-color: var(--line-soft);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ---- 实体卡片：细描边 + 柔阴影 + 圆角 + hover 抬升 ---- */
+.anniversary-card,
+.schedule-card,
+.diary-body,
+.wish-card,
+.recipe-card,
+.memory-card,
+.cat-profile,
+.health-card,
+.sync-status {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow-soft);
+}
+.anniversary-card,
+.schedule-card,
+.diary-body,
+.wish-card,
+.recipe-card,
+.memory-card,
+.cat-profile {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.anniversary-card:hover,
+.schedule-card:hover,
+.diary-body:hover,
+.wish-card:hover,
+.recipe-card:hover,
+.memory-card:hover,
+.cat-profile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(90, 75, 80, 0.12);
+}
+
+/* ---- 快速入口卡 ---- */
+.entry-card {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.entry-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 34px rgba(90, 75, 80, 0.14);
+}
+
+/* ---- 便签卡：保留轻微倾斜，去掉硬阴影 ---- */
+.note-card {
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.note-card:hover {
+  box-shadow: 0 14px 30px rgba(90, 75, 80, 0.12);
+}
+.note-card:nth-child(odd):hover {
+  transform: rotate(-1.5deg) translateY(-3px);
+}
+.note-card:nth-child(even):hover {
+  transform: rotate(1.2deg) translateY(-3px);
+}
+
+/* ---- 统计块：柔和莫兰迪色分区，去粗描边 ---- */
+.stats-row article,
+.wish-stats article {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-soft);
+}
+.stats-row article { background: var(--blue); }
+.stats-row article:nth-child(2) { background: var(--pink-soft); }
+.stats-row article:nth-child(3) { background: var(--lemon); }
+.wish-stats article { background: var(--mint); }
+.wish-stats article:nth-child(2) { background: var(--blue); }
+.wish-stats article:nth-child(3) { background: var(--pink-soft); }
+
+/* ---- 主按钮：渐变底 + 柔阴影，去硬描边 ---- */
+.primary-btn,
+.secondary-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 12px 22px;
+  box-shadow: 0 8px 20px rgba(201, 123, 147, 0.28);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.primary-btn {
+  background: linear-gradient(135deg, #d48a9e, #c97b93);
+  color: #fff;
+}
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--line-soft);
+  color: var(--ink);
+  box-shadow: var(--shadow-soft);
+}
+.primary-btn:hover,
+.secondary-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(201, 123, 147, 0.34);
+}
+.primary-btn:active,
+.secondary-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* ---- 幽灵按钮 / 图标按钮 / 筛选 pills ---- */
+.ghost-btn,
+.icon-btn {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.7);
+}
+.filters button,
+.nav-pills a {
+  border: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: none;
+}
+.nav-pills a:hover,
+.nav-pills a.active,
+.filters button:hover,
+.filters button.active {
+  background: var(--orange);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 6px 16px rgba(201, 123, 147, 0.3);
+}
+
+/* ---- 顶栏 / 底部标签栏：细线 + 磨砂 ---- */
+.site-header {
+  border-bottom: 1px solid var(--line-soft);
+  padding: 16px 0 12px;
+}
+.tab-bar {
+  border-top: 1px solid var(--line-soft);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 -6px 20px rgba(90, 75, 80, 0.05);
+}
+body.night .tab-bar {
+  background: rgba(43, 37, 41, 0.82);
+}
+.brand-mark,
+.round-action {
+  border: 1px solid var(--line-soft);
+  box-shadow: var(--shadow-soft);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+/* ---- 侧边抽屉：细描边 + 左侧圆角 ---- */
+.side-drawer {
+  border-left: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+  box-shadow: -12px 0 32px rgba(90, 75, 80, 0.12);
+  background: rgba(255, 255, 255, 0.96);
+}
+.side-drawer a {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+/* ---- 表单 / 输入框 ---- */
+.field input,
+.field textarea,
+.field select {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.9);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(212, 138, 158, 0.15);
+}
+
+/* ---- 进度条 / 时间轴 / 勾选框：保留可爱但更柔和 ---- */
+.progress {
+  border: 1px solid var(--line-soft);
+}
+.timeline-dot,
+.wish-check span {
+  border: 2px solid var(--line);
+}
+.map-canvas {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+}
+
+/* ---- 模态框 / 设置面板 ---- */
+.modal,
+.settings-panel {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(90, 75, 80, 0.2);
+}
+
+/* ---- 留白节奏：主间距加大，让 hero 重、列表轻 ---- */
+main {
+  gap: 34px;
+  padding: 32px 0;
+}
+.hero-card {
+  padding: clamp(32px, 8vw, 80px) 28px 40px;
+}
+.upcoming,
+.quick-entry,
+.diary-section,
+.wish-section,
+.album-section,
+.schedule-section,
+.recipe-section,
+.cat-section,
+.notes-section,
+.map-section {
+  padding: clamp(22px, 5vw, 42px);
+}
+
+/* ---- 标题排版：更精致的字距与字重 ---- */
+.section-title h2 {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.brand {
+  letter-spacing: 0.03em;
+}
+
+/* ---- 背景涂鸦缓慢漂移 ---- */
+.page-doodles span {
+  animation: doodle-drift 22s ease-in-out infinite;
+}
+.page-doodles span:nth-child(2) { animation-duration: 28s; animation-delay: -6s; }
+.page-doodles span:nth-child(3) { animation-duration: 24s; animation-delay: -12s; }
+.page-doodles span:nth-child(4) { animation-duration: 30s; animation-delay: -3s; }
+.page-doodles span:nth-child(5) { animation-duration: 26s; animation-delay: -9s; }
+@keyframes doodle-drift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-18px) rotate(8deg); }
+}
+
+/* ---- 视图切换入场动画 ---- */
+.view-enter {
+  animation: view-fade-up 0.5s ease both;
+}
+@keyframes view-fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-doodles span,
+  .view-enter {
+    animation: none !important;
+  }
+  .reveal, .view-enter { opacity: 1 !important; transform: none !important; }
+}
+
+/* ============================================================
+   首屏焦点层 —— hero 光晕渐变底 + 头像柔光，拉开与列表的层次
+   ============================================================ */
+.hero-card {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(212, 138, 158, 0.16), transparent 44%),
+    radial-gradient(circle at 84% 82%, rgba(201, 123, 147, 0.11), transparent 40%),
+    radial-gradient(circle at 50% 46%, rgba(255, 255, 255, 0.92), transparent 72%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(255, 246, 249, 0.80));
+}
+body.night .hero-card {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(227, 154, 173, 0.16), transparent 44%),
+    radial-gradient(circle at 84% 82%, rgba(185, 138, 151, 0.12), transparent 40%),
+    linear-gradient(135deg, rgba(52, 45, 49, 0.97), rgba(45, 39, 43, 0.86));
+}
+
+.avatar {
+  box-shadow:
+    inset 0 0 0 6px rgba(255, 255, 255, 0.35),
+    5px 6px 0 rgba(69, 59, 53, 0.10),
+    0 0 0 8px rgba(212, 138, 158, 0.12),
+    0 0 0 18px rgba(212, 138, 158, 0.05);
+}
+
+/* 区块标题：渐变色点 + 更明确的主题感 */
+.section-title h2 {
+  position: relative;
+  padding-bottom: 6px;
+}
+.section-title h2::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--orange), var(--pink));
+  opacity: 0.9;
+}
+.section-title.centered h2::after {
+  left: 50%;
+  transform: translateX(-50%);
 }
