@@ -123,7 +123,8 @@ function lunarYearDays(y) {
   }
   return sum + lunarLeapDays(y);
 }
-// 农历 (y 年 m 月 d 日) → 公历 Date（本地时区，1900-2100 有效；闰月按正月序不计闰）
+// 农历 (y 年 m 月 d 日) → 公历日期字符串 "YYYY-MM-DD"
+// 用 UTC 计算，结果与设备时区无关（1900-2100 有效；闰月按正月序不计闰）
 function lunarToSolar(y, m, d) {
   let offset = 0;
   for (let i = 1900; i < y; i++) offset += lunarYearDays(i);
@@ -131,8 +132,8 @@ function lunarToSolar(y, m, d) {
   const leap = lunarLeapMonth(y);
   if (leap && leap < m) offset += lunarLeapDays(y);
   offset += d - 1;
-  const base = new Date(1900, 0, 31); // 1900-01-31 = 农历 1900 年正月初一
-  return new Date(base.getTime() + offset * msPerDay);
+  const dt = new Date(Date.UTC(1900, 0, 31) + offset * msPerDay); // 1900-01-31 = 农历 1900 年正月初一
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
 }
 
 function normalizeData(d) {
@@ -236,12 +237,19 @@ function getMilestone(start, days) {
 }
 
 /* ---------------- 节日（农历生日 / 传统节日） ---------------- */
-function sameDay(a, b) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+// 北京时间的"今天"，返回 "YYYY-MM-DD" 字符串（农历节日按北京时间判断，不受设备时区影响）
+function chinaTodayStr() {
+  const now = new Date();
+  // 北京时间 = UTC + 8 小时，直接用绝对时刻换算，与设备时区无关
+  const china = new Date(now.getTime() + 8 * 3600 * 1000);
+  return `${china.getUTCFullYear()}-${String(china.getUTCMonth() + 1).padStart(2, "0")}-${String(china.getUTCDate()).padStart(2, "0")}`;
+}
+
+// 两个 "YYYY-MM-DD" 字符串之间的天数差（b - a）
+function daysBetweenStr(a, b) {
+  const [ay, am, ad] = a.split("-").map(Number);
+  const [by, bm, bd] = b.split("-").map(Number);
+  return Math.round((Date.UTC(by, bm - 1, bd) - Date.UTC(ay, am - 1, ad)) / 86400000);
 }
 
 function getFestivals() {
@@ -254,21 +262,22 @@ function festivalSolarDate(f, year) {
 
 // 今天命中的节日（用于当天专属界面）
 function getTodayFestival() {
+  const t = chinaTodayStr();
   for (const f of getFestivals()) {
-    if (sameDay(festivalSolarDate(f, today.getFullYear()), today)) return f;
+    if (festivalSolarDate(f, Number(t.slice(0, 4))) === t) return f;
   }
   return null;
 }
 
 // 最近的下一个节日（用于倒计时预告）
 function getUpcomingFestival() {
+  const t = chinaTodayStr();
+  const year = Number(t.slice(0, 4));
   let best = null;
   for (const f of getFestivals()) {
-    let solar = festivalSolarDate(f, today.getFullYear());
-    if (!sameDay(solar, today) && solar < today) {
-      solar = festivalSolarDate(f, today.getFullYear() + 1);
-    }
-    const daysLeft = daysBetween(today, solar);
+    let solar = festivalSolarDate(f, year);
+    if (solar < t) solar = festivalSolarDate(f, year + 1);
+    const daysLeft = daysBetweenStr(t, solar);
     if (!best || daysLeft < best.daysLeft) {
       best = { festival: f, date: solar, daysLeft };
     }
