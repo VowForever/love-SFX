@@ -3,9 +3,33 @@ const SITE_DATA = {
     "startDate": "2026-04-07",
     "subtitle": "和世界上最美丽的小雪在一起的粉色回忆",
     "festivals": [
-      { "id": "xiaoxue-birthday", "name": "小雪生日", "title": "小雪生日快乐", "emoji": "🎂", "lunarMonth": 10, "lunarDay": 21, "sub": "农历十月廿一" },
-      { "id": "xiaozhou-birthday", "name": "小周生日", "title": "小周生日快乐", "emoji": "🎂", "lunarMonth": 9, "lunarDay": 3, "sub": "农历九月初三" },
-      { "id": "qixi", "name": "七夕", "title": "七夕快乐", "emoji": "💞", "lunarMonth": 7, "lunarDay": 7, "sub": "农历七月初七" }
+      {
+        "id": "xiaoxue-birthday",
+        "name": "小雪生日",
+        "title": "小雪生日快乐",
+        "emoji": "🎂",
+        "lunarMonth": 10,
+        "lunarDay": 21,
+        "sub": "农历十月廿一"
+      },
+      {
+        "id": "xiaozhou-birthday",
+        "name": "小周生日",
+        "title": "小周生日快乐",
+        "emoji": "🎂",
+        "lunarMonth": 9,
+        "lunarDay": 3,
+        "sub": "农历九月初三"
+      },
+      {
+        "id": "qixi",
+        "name": "七夕",
+        "title": "七夕快乐",
+        "emoji": "💞",
+        "lunarMonth": 7,
+        "lunarDay": 7,
+        "sub": "农历七月初七"
+      }
     ]
   },
   "diaries": [
@@ -96,7 +120,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1786875064017,
+  "_updatedAt": 1787061478828,
   "recipes": [
     {
       "id": "rmqjn21096auy",
