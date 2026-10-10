@@ -2,6 +2,15 @@ const STORAGE_KEY = "kitty-journal-data-v1";
 const KIND_LABELS = { date: "约会", food: "美食", travel: "旅行", movie: "影视", sport: "运动", shopping: "逛街", beauty: "美容", home: "宅家" };
 const MEMORY_THEMES = ["picnic", "movie", "train"];
 const NOTE_COLORS = ["pink", "lemon", "mint", "blue"];
+const DISH_CATEGORIES = ["主食", "小菜", "汤", "甜品", "饮品"];
+const SPICY_LEVELS = ["不辣", "微辣", "中辣", "特辣"];
+const SPICY_MARK = { 不辣: "", 微辣: "🌶", 中辣: "🌶🌶", 特辣: "🌶🌶🌶" };
+const COOKS = ["小周", "小雪", "一起", "谁都行"];
+const AVOID_TAGS = ["香菜", "葱", "蒜", "姜", "辣", "花生", "海鲜"];
+const ORDER_STATUS = { ordered: "已点单", cooking: "制作中", served: "已上桌" };
+const ORDER_NEXT = { ordered: "cooking", cooking: "served" };
+const ORDER_PREV = { cooking: "ordered", served: "cooking" };
+const ORDER_NEXT_LABEL = { ordered: "开始做", cooking: "已上桌" };
 const CAT_MOODS = [
   { value: "吃饭", emoji: "🍚" },
   { value: "睡觉", emoji: "😴" },
@@ -21,6 +30,7 @@ let data = loadData();
 let activeFilter = "all";
 let activeRecipeFilter = "all";
 let activeCatFilter = "all";
+let activeMenuFilter = "all";
 let modalContext = null;
 
 const els = {
@@ -68,6 +78,11 @@ const els = {
   anniversaryList: document.getElementById("anniversaryList"),
   scheduleList: document.getElementById("scheduleList"),
   notesBoard: document.getElementById("notesBoard"),
+  menuTicket: document.getElementById("menuTicket"),
+  menuFilters: document.getElementById("menuFilters"),
+  menuGrid: document.getElementById("menuGrid"),
+  menuHistory: document.getElementById("menuHistory"),
+  spinResult: document.getElementById("spinResult"),
   modalBackdrop: document.getElementById("modalBackdrop"),
   modalTitle: document.getElementById("modalTitle"),
   modalForm: document.getElementById("modalForm"),
@@ -147,6 +162,12 @@ function normalizeData(d) {
   d.cats = d.cats || [];
   d.catProfile = d.catProfile || {};
   d.catHealth = d.catHealth || [];
+  d.dishes = Array.isArray(d.dishes) ? d.dishes : structuredClone((SITE_DATA && SITE_DATA.dishes) || []);
+  d.orders = (Array.isArray(d.orders) ? d.orders : []).map((order) => ({
+    ...order,
+    items: Array.isArray(order.items) ? order.items : [],
+    status: order.status || "ordered",
+  }));
   d.settings = d.settings || {};
   d.settings.festivals = d.settings.festivals || (SITE_DATA.settings.festivals || []);
   return d;
@@ -212,26 +233,44 @@ function showToast(message) {
 
 function renderAll() {
   renderHero();
+  renderToday();
   renderAnniversaries();
   renderSchedules();
   renderDiaries();
   renderWishes();
   renderMemories();
   renderRecipes();
+  renderMenu();
   renderCats();
   renderNotes();
   els.year.textContent = today.getFullYear();
 }
 
+function togetherDays() {
+  return Math.max(1, daysBetween(getStartDate(), today) + 1);
+}
+
+// 每满 100 天：当天庆祝；提前 30 天开始在首页预告（187 天会看到第 200 天）
+function hundredState(days) {
+  if (days >= 100 && days % 100 === 0) return { phase: "today", mark: days, left: 0 };
+  const mark = Math.ceil((days + 1) / 100) * 100;
+  const left = mark - days;
+  if (left > 0 && left <= 30) return { phase: "soon", mark, left };
+  return null;
+}
+
 function getMilestone(start, days) {
-  if (days === 100) return { label: "在一起 100 天啦", emoji: "💯" };
+  const hundred = hundredState(days);
+  if (hundred && hundred.phase === "today") {
+    return { kind: "hundred", label: `在一起第 ${hundred.mark} 天`, emoji: "💯" };
+  }
   const years = today.getFullYear() - start.getFullYear();
   if (
     years >= 1 &&
     today.getMonth() === start.getMonth() &&
     today.getDate() === start.getDate()
   ) {
-    return { label: `在一起 ${years} 周年快乐`, emoji: "❤️" };
+    return { kind: "year", label: `在一起 ${years} 周年快乐`, emoji: "❤️" };
   }
   return null;
 }
@@ -311,19 +350,32 @@ let festivalShown = false;
 
 function renderHero() {
   const start = getStartDate();
-  const days = Math.max(1, daysBetween(start, today) + 1);
-  els.relatedDays.textContent = days;
+  const days = togetherDays();
+  if (els.relatedDays) els.relatedDays.textContent = days;
   els.startDateText.textContent =
     data.settings.subtitle ||
     `从 ${start.getFullYear()} 年 ${String(start.getMonth() + 1).padStart(2, "0")} 月 ${String(start.getDate()).padStart(2, "0")} 日开始收藏粉色回忆`;
   els.settingStartDate.value = data.settings.startDate;
   els.settingSubtitle.value = data.settings.subtitle || "";
 
+  const hundred = hundredState(days);
+  const soon = hundred && hundred.phase === "soon";
   const milestone = getMilestone(start, days);
-  if (els.heroCard) els.heroCard.classList.toggle("milestone", !!milestone);
+  if (els.heroCard) {
+    els.heroCard.classList.toggle("milestone", !!milestone);
+    els.heroCard.classList.toggle("hundred", !!(hundred && hundred.phase === "today"));
+    els.heroCard.classList.toggle("hundred-soon", !!soon);
+  }
   if (els.milestoneBanner) {
-    if (milestone) {
+    els.milestoneBanner.classList.toggle("soon", !!soon && !milestone);
+    if (hundred && hundred.phase === "today") {
+      els.milestoneBanner.textContent = `💯 ${milestone.label} 💯`;
+      els.milestoneBanner.hidden = false;
+    } else if (milestone) {
       els.milestoneBanner.textContent = `${milestone.emoji} ${milestone.label} ${milestone.emoji}`;
+      els.milestoneBanner.hidden = false;
+    } else if (soon) {
+      els.milestoneBanner.textContent = `还有 ${hundred.left} 天，就是在一起第 ${hundred.mark} 天`;
       els.milestoneBanner.hidden = false;
     } else {
       els.milestoneBanner.hidden = true;
@@ -331,25 +383,29 @@ function renderHero() {
   }
 
   const festival = getTodayFestival();
-  if (els.heroCard) els.heroCard.classList.toggle("festival", !!festival);
-  if (festival) {
-    // 当天命中节日 → 天数数字换成节日专属展示
+  const keepDayCount = !festival || (hundred && hundred.phase === "today");
+  if (els.heroCard) els.heroCard.classList.toggle("festival", !!festival && !keepDayCount);
+  if (!keepDayCount) {
     if (els.loveCountLabel) els.loveCountLabel.textContent = festival.emoji;
     if (els.daysTogether) els.daysTogether.textContent = festival.title;
     if (els.loveCountUnit) els.loveCountUnit.textContent = festival.sub;
     if (els.festivalCountdown) els.festivalCountdown.hidden = true;
   } else {
-    // 非节日 → 恢复天数，并预告最近的下一个节日
-    if (els.loveCountLabel) els.loveCountLabel.textContent = "甜心陪伴第";
+    if (els.loveCountLabel) els.loveCountLabel.textContent = hundred && hundred.phase === "today" ? "满百天 · 第" : "甜心陪伴第";
     if (els.daysTogether) els.daysTogether.textContent = days;
     if (els.loveCountUnit) els.loveCountUnit.textContent = "天";
-    const upcoming = getUpcomingFestival();
     if (els.festivalCountdown) {
-      if (upcoming) {
-        els.festivalCountdown.textContent = `${upcoming.festival.emoji} 距「${upcoming.festival.name}」还有 ${upcoming.daysLeft} 天`;
+      if (festival && hundred && hundred.phase === "today") {
+        els.festivalCountdown.textContent = `${festival.emoji} 今天也是「${festival.name}」`;
         els.festivalCountdown.hidden = false;
       } else {
-        els.festivalCountdown.hidden = true;
+        const upcoming = getUpcomingFestival();
+        if (upcoming) {
+          els.festivalCountdown.textContent = `${upcoming.festival.emoji} 距「${upcoming.festival.name}」还有 ${upcoming.daysLeft} 天`;
+          els.festivalCountdown.hidden = false;
+        } else {
+          els.festivalCountdown.hidden = true;
+        }
       }
     }
   }
@@ -403,71 +459,214 @@ function getNextOccurrence(dateStr, yearly) {
   return { date: candidate, daysLeft, progress: Math.min(100, Math.max(0, (elapsed / totalSpan) * 100)) };
 }
 
+function nextFestivalDate(festival) {
+  const todayStr = chinaTodayStr();
+  const year = Number(todayStr.slice(0, 4));
+  let solar = festivalSolarDate(festival, year);
+  if (solar < todayStr) solar = festivalSolarDate(festival, year + 1);
+  return solar;
+}
+
+function anniversaryCardHtml({ name, statusHtml, sub, progress, actions }) {
+  return `
+    <article class="anniversary-card">
+      <div class="gift-icon"></div>
+      <div class="anniversary-info">
+        <h3>${escapeHtml(name)}</h3>
+        <p>${statusHtml}</p>
+        <small>${sub}</small>
+      </div>
+      <div class="progress-wrap" aria-label="倒计时进度">
+        <span>倒计时进度</span>
+        <div class="progress"><i style="width:${progress}%"></i></div>
+      </div>
+      <div class="card-actions">${actions}</div>
+    </article>`;
+}
+
 function renderAnniversaries() {
-  els.anniversaryList.innerHTML = data.anniversaries
-    .map((item) => {
-      const next = getNextOccurrence(item.date, item.yearly);
-      const progress = item.yearly ? next.progress : next.passed ? 100 : 0;
-      const statusText = next.passed && !item.yearly
-        ? "已度过"
-        : next.daysLeft === 0
-          ? "就是今天！"
-          : `还有 <strong>${next.daysLeft}</strong> 天`;
-      return `
-        <article class="anniversary-card" data-id="${item.id}">
-          <div class="gift-icon"></div>
-          <div class="anniversary-info">
-            <h3>${escapeHtml(item.name)}</h3>
-            <p>${statusText}</p>
-            <small>${formatDateDot(item.date)}${item.yearly ? " · 每年重复" : ""}</small>
-          </div>
-          <div class="progress-wrap" aria-label="倒计时进度">
-            <span>倒计时进度</span>
-            <div class="progress"><i style="width:${progress}%"></i></div>
-          </div>
-          <div class="card-actions">
-            <button class="ghost-btn small-btn" data-action="calendar" data-type="anniversary" data-id="${item.id}">加入日历</button>
-            <button class="icon-btn" data-action="edit-anniversary" data-id="${item.id}" aria-label="编辑">✎</button>
-            <button class="icon-btn danger" data-action="delete-anniversary" data-id="${item.id}" aria-label="删除">×</button>
-          </div>
-        </article>
-      `;
-    })
+  const rows = [];
+  const start = data.settings.startDate;
+  if (start && !data.anniversaries.some((item) => item.date === start)) {
+    const next = getNextOccurrence(start, true);
+    rows.push({
+      daysLeft: next.daysLeft,
+      html: anniversaryCardHtml({
+        name: "在一起",
+        statusHtml: next.daysLeft === 0 ? "就是今天！" : `还有 <strong>${next.daysLeft}</strong> 天`,
+        sub: `${formatDateDot(start)} · 每年`,
+        progress: next.progress,
+        actions: `<button class="ghost-btn small-btn" type="button" data-action="calendar" data-type="together">加入日历</button>`,
+      }),
+    });
+  }
+  data.anniversaries.forEach((item) => {
+    const next = getNextOccurrence(item.date, item.yearly);
+    const passed = next.passed && !item.yearly;
+    rows.push({
+      daysLeft: passed ? 9999 : next.daysLeft,
+      html: anniversaryCardHtml({
+        name: item.name,
+        statusHtml: passed ? "已度过" : next.daysLeft === 0 ? "就是今天！" : `还有 <strong>${next.daysLeft}</strong> 天`,
+        sub: `${formatDateDot(item.date)}${item.yearly ? " · 每年重复" : ""}`,
+        progress: item.yearly ? next.progress : passed ? 100 : 0,
+        actions: `
+          <button class="ghost-btn small-btn" type="button" data-action="calendar" data-type="anniversary" data-id="${item.id}">加入日历</button>
+          <button class="icon-btn" type="button" data-action="edit-anniversary" data-id="${item.id}" aria-label="编辑">✎</button>
+          <button class="icon-btn danger" type="button" data-action="delete-anniversary" data-id="${item.id}" aria-label="删除">×</button>`,
+      }),
+    });
+  });
+  getFestivals().forEach((festival) => {
+    const date = nextFestivalDate(festival);
+    const daysLeft = Math.max(0, daysBetweenStr(chinaTodayStr(), date));
+    rows.push({
+      daysLeft,
+      html: anniversaryCardHtml({
+        name: festival.name,
+        statusHtml: daysLeft === 0 ? "就是今天！" : `还有 <strong>${daysLeft}</strong> 天`,
+        sub: `${escapeHtml(festival.sub || "")} · ${formatDateDot(date)}`,
+        progress: Math.min(100, Math.max(0, ((365 - daysLeft) / 365) * 100)),
+        actions: `<button class="ghost-btn small-btn" type="button" data-action="calendar" data-type="festival" data-id="${festival.id}">加入日历</button>`,
+      }),
+    });
+  });
+  rows.sort((a, b) => a.daysLeft - b.daysLeft);
+  els.anniversaryList.innerHTML = rows.map((row) => row.html).join("");
+}
+
+function renderToday() {
+  const grid = document.getElementById("todayGrid");
+  if (!grid) return;
+  const cards = [];
+  const hundred = hundredState(togetherDays());
+  const board = grid.closest(".today-board");
+  if (board) {
+    board.classList.toggle("hundred", !!(hundred && hundred.phase === "today"));
+    board.classList.toggle("hundred-soon", !!(hundred && hundred.phase === "soon"));
+  }
+  if (hundred && hundred.phase === "today") {
+    cards.push({
+      href: "#home",
+      tone: "hundred",
+      kicker: "就是今天",
+      title: `第 ${hundred.mark} 天`,
+      meta: "满百天啦，好好过这一天",
+    });
+  } else if (hundred && hundred.phase === "soon") {
+    cards.push({
+      href: "#home",
+      tone: "hundred-soon",
+      kicker: "百天",
+      title: `第 ${hundred.mark} 天`,
+      meta: `还有 ${hundred.left} 天`,
+    });
+  }
+
+  const order = typeof ticketOrder === "function" ? ticketOrder() : null;
+  if (order && order.items && order.items.length) {
+    cards.push({ href: "#menu", kicker: "今晚", title: orderNames(order), meta: ORDER_STATUS[order.status] || "已点单" });
+  } else {
+    cards.push({ href: "#menu", kicker: "今晚", title: "还没点菜", meta: "去菜单上看看今晚吃什么" });
+  }
+
+  const nextSchedule = [...(data.schedules || [])]
+    .filter((item) => daysBetween(today, parseDate(item.date)) >= 0)
+    .sort((a, b) => `${a.date}${a.time || ""}`.localeCompare(`${b.date}${b.time || ""}`))[0];
+  if (nextSchedule) {
+    const left = daysBetween(today, parseDate(nextSchedule.date));
+    cards.push({
+      href: "#schedule",
+      kicker: "日程",
+      title: nextSchedule.title,
+      meta: left === 0 ? "就是今天" : `还有 ${left} 天`,
+    });
+  } else {
+    cards.push({ href: "#schedule", kicker: "日程", title: "接下来还没有约定", meta: "记一个想一起做的事" });
+  }
+
+  const latest = [...(data.diaries || [])].sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (latest) {
+    const ago = daysBetween(parseDate(latest.date), today);
+    cards.push({
+      href: "#diary",
+      kicker: "日常",
+      title: latest.title,
+      meta: ago === 0 ? "今天写下的" : `${ago} 天前`,
+    });
+  }
+
+  const wish = (data.wishes || []).find((item) => !item.done);
+  if (wish) {
+    cards.push({ href: "#wishlist", kicker: "心愿", title: wish.title, meta: wish.note || "还没完成" });
+  }
+
+  const health = (data.catHealth || [])
+    .map((item) => ({ item, info: catHealthInfo(item) }))
+    .find((row) => row.info.state === "overdue" || row.info.state === "soon");
+  if (health) {
+    cards.push({
+      href: "#cat",
+      kicker: "嘻嘻",
+      title: health.item.name || health.item.type,
+      meta: health.info.state === "overdue" ? `已过期 ${Math.abs(health.info.daysLeft)} 天` : `还有 ${health.info.daysLeft} 天`,
+    });
+  }
+
+  grid.innerHTML = cards
+    .map(
+      (card) => `
+      <a class="today-card${card.tone ? ` ${card.tone}` : ""}" href="${card.href}">
+        <span>${escapeHtml(card.kicker)}</span>
+        <strong>${escapeHtml(card.title)}</strong>
+        <small>${escapeHtml(card.meta)}</small>
+      </a>`
+    )
     .join("");
 }
 
 const REMIND_LABELS = { 0: "准时提醒", 15: "提前 15 分钟", 60: "提前 1 小时", 1440: "提前 1 天" };
 
+function scheduleCardHtml(item) {
+  const daysLeft = daysBetween(today, parseDate(item.date));
+  const when = daysLeft < 0 ? "已过" : daysLeft === 0 ? "就是今天！" : `还有 <strong>${daysLeft}</strong> 天`;
+  const remind = item.remind != null ? ` · ${REMIND_LABELS[item.remind] || "提醒"}` : "";
+  return `
+    <article class="schedule-card${daysLeft < 0 ? " past" : ""}" data-id="${item.id}">
+      <div class="schedule-date">
+        <strong>${formatDateDot(item.date)}</strong>
+        ${item.time ? `<span>${escapeHtml(item.time)}</span>` : ""}
+      </div>
+      <div class="schedule-info">
+        <h3>${escapeHtml(item.title)}</h3>
+        <p>${when}${remind}</p>
+        ${item.note ? `<small>${escapeHtml(item.note)}</small>` : ""}
+      </div>
+      <div class="card-actions">
+        <button class="ghost-btn small-btn" type="button" data-action="calendar" data-type="schedule" data-id="${item.id}">加入日历</button>
+        <button class="icon-btn" type="button" data-action="edit-schedule" data-id="${item.id}" aria-label="编辑">✎</button>
+        <button class="icon-btn danger" type="button" data-action="delete-schedule" data-id="${item.id}" aria-label="删除">×</button>
+      </div>
+    </article>`;
+}
+
 function renderSchedules() {
   const sorted = [...data.schedules].sort((a, b) =>
     `${a.date}${a.time || ""}`.localeCompare(`${b.date}${b.time || ""}`)
   );
+  const upcoming = sorted.filter((item) => daysBetween(today, parseDate(item.date)) >= 0);
+  const past = sorted.filter((item) => daysBetween(today, parseDate(item.date)) < 0).reverse();
   document.getElementById("scheduleEmpty").hidden = sorted.length > 0;
-  els.scheduleList.innerHTML = sorted
-    .map((item) => {
-      const daysLeft = daysBetween(today, parseDate(item.date));
-      const when = daysLeft < 0 ? "已过" : daysLeft === 0 ? "就是今天！" : `还有 <strong>${daysLeft}</strong> 天`;
-      const remind = item.remind != null ? ` · ${REMIND_LABELS[item.remind] || "提醒"}` : "";
-      return `
-        <article class="schedule-card${daysLeft < 0 ? " past" : ""}" data-id="${item.id}">
-          <div class="schedule-date">
-            <strong>${formatDateDot(item.date)}</strong>
-            ${item.time ? `<span>${escapeHtml(item.time)}</span>` : ""}
-          </div>
-          <div class="schedule-info">
-            <h3>${escapeHtml(item.title)}</h3>
-            <p>${when}${remind}</p>
-            ${item.note ? `<small>${escapeHtml(item.note)}</small>` : ""}
-          </div>
-          <div class="card-actions">
-            <button class="ghost-btn small-btn" data-action="calendar" data-type="schedule" data-id="${item.id}">加入日历</button>
-            <button class="icon-btn" data-action="edit-schedule" data-id="${item.id}" aria-label="编辑">✎</button>
-            <button class="icon-btn danger" data-action="delete-schedule" data-id="${item.id}" aria-label="删除">×</button>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
+  const parts = [];
+  if (upcoming.length) {
+    parts.push(`<h3 class="history-title">接下来</h3>${upcoming.map(scheduleCardHtml).join("")}`);
+  } else if (past.length) {
+    parts.push(`<p class="empty-hint">接下来还没有约定。</p>`);
+  }
+  if (past.length) {
+    parts.push(`<h3 class="history-title">已经过去</h3>${past.map(scheduleCardHtml).join("")}`);
+  }
+  els.scheduleList.innerHTML = parts.join("");
 }
 
 function renderDiaries() {
@@ -477,6 +676,29 @@ function renderDiaries() {
 
   document.getElementById("monthCount").textContent = monthCount;
   document.getElementById("totalCount").textContent = sorted.length;
+  const sinceLast = document.getElementById("sinceLast");
+  if (sinceLast) {
+    if (!sorted.length) sinceLast.textContent = "—";
+    else {
+      const ago = daysBetween(parseDate(sorted[0].date), today);
+      sinceLast.textContent = ago === 0 ? "今天" : `${ago}天`;
+    }
+  }
+
+  const usedKinds = [...new Set(sorted.map((item) => item.kind).filter((kind) => KIND_LABELS[kind]))];
+  if (activeFilter !== "all" && !usedKinds.includes(activeFilter)) activeFilter = "all";
+  const diaryFilters = document.getElementById("diaryFilters");
+  if (diaryFilters) {
+    diaryFilters.innerHTML = sorted.length
+      ? `<button type="button" class="${activeFilter === "all" ? "active" : ""}" data-action="filter-diary" data-filter="all">全部</button>` +
+        usedKinds
+          .map(
+            (kind) =>
+              `<button type="button" class="${activeFilter === kind ? "active" : ""}" data-action="filter-diary" data-filter="${kind}">${KIND_LABELS[kind]}</button>`
+          )
+          .join("")
+      : "";
+  }
 
   const visible = sorted.filter((d) => activeFilter === "all" || d.kind === activeFilter);
   document.getElementById("diaryEmpty").hidden = visible.length > 0;
@@ -600,6 +822,7 @@ function renderRecipes() {
           ${item.ingredients ? `<div class="recipe-block"><strong>食材</strong><p>${escapeHtml(item.ingredients)}</p></div>` : ""}
           <div class="recipe-block"><strong>做法</strong><p>${escapeHtml(item.steps)}</p></div>
           <div class="card-actions inline">
+            <button class="ghost-btn small-btn" type="button" data-action="shelf-recipe" data-id="${item.id}">上架菜单</button>
             <button class="icon-btn" data-action="edit-recipe" data-id="${item.id}" aria-label="编辑">✎</button>
             <button class="icon-btn danger" data-action="delete-recipe" data-id="${item.id}" aria-label="删除">×</button>
           </div>
@@ -608,6 +831,319 @@ function renderRecipes() {
     `
     )
     .join("");
+}
+
+function dishOrderCount(dishId) {
+  return data.orders.reduce(
+    (sum, order) => sum + (order.items || []).filter((item) => item.dishId === dishId).reduce((n, item) => n + (item.qty || 1), 0),
+    0
+  );
+}
+
+function activeOrder() {
+  return data.orders.find((order) => order.status !== "served") || null;
+}
+
+function ticketOrder() {
+  return activeOrder() || data.orders.find((order) => order.date === chinaTodayStr() && order.status === "served") || null;
+}
+
+function addDishToOrder(dishId) {
+  const dish = data.dishes.find((item) => item.id === dishId);
+  if (!dish) return;
+  let order = activeOrder();
+  if (!order) {
+    order = {
+      id: uid("o"),
+      date: chinaTodayStr(),
+      status: "ordered",
+      items: [],
+      note: "",
+      diaryId: "",
+      scheduleId: "",
+    };
+    data.orders.unshift(order);
+  }
+  const existed = order.items.find((item) => item.dishId === dish.id);
+  if (existed) existed.qty = (existed.qty || 1) + 1;
+  else order.items.push({ dishId: dish.id, name: dish.name, note: "", qty: 1 });
+  saveData();
+  renderMenu();
+  showToast(existed ? `又点了一份${dish.name}` : `已点上${dish.name}`);
+}
+
+function shelfRecipe(recipe) {
+  if (!recipe) return;
+  if (data.dishes.some((dish) => dish.recipeId === recipe.id)) {
+    showToast("这道菜已经在菜单上了");
+    return;
+  }
+  data.dishes.unshift({
+    id: uid("dish"),
+    name: recipe.name,
+    category: "小菜",
+    spicy: "不辣",
+    cook: "一起",
+    avoid: [],
+    recipeId: recipe.id,
+    image: recipe.image || "",
+    note: recipe.style || "",
+  });
+  saveData();
+  renderMenu();
+  showToast("已上架到菜单");
+}
+
+function dishFromValues(values, id) {
+  return {
+    id,
+    name: values.name.trim(),
+    category: values.category || "小菜",
+    spicy: values.spicy || "不辣",
+    cook: values.cook || "一起",
+    avoid: asList(values.avoid),
+    recipeId: values.recipeId || "",
+    image: values.image || "",
+    note: (values.note || "").trim(),
+  };
+}
+
+function orderNames(order) {
+  return order.items.map((item) => `${item.name}${item.qty > 1 ? ` ×${item.qty}` : ""}`).join("、");
+}
+
+function addOrderToSchedule(order) {
+  if (!order.items.length) return;
+  if (order.scheduleId && data.schedules.some((item) => item.id === order.scheduleId)) {
+    showToast("这张小票已经在日程里了");
+    return;
+  }
+  const id = uid("s");
+  data.schedules.push({
+    id,
+    title: `今晚做：${orderNames(order)}`,
+    date: order.date || chinaTodayStr(),
+    time: "18:30",
+    remind: 60,
+    note: order.items.map((item) => (item.note ? `${item.name}：${item.note}` : item.name)).join("\n"),
+  });
+  order.scheduleId = id;
+  saveData();
+  renderSchedules();
+  renderMenu();
+  showToast("已加到今晚日程");
+}
+
+function addOrderToDiary(order) {
+  if (order.status !== "served") {
+    showToast("上桌之后再记进日常吧");
+    return;
+  }
+  if (order.diaryId && data.diaries.some((item) => item.id === order.diaryId)) {
+    showToast("这顿已经记进日常了");
+    return;
+  }
+  const lines = order.items.map((item) => `${item.name}${item.qty > 1 ? ` ×${item.qty}` : ""}${item.note ? `（${item.note}）` : ""}`);
+  if (order.note) lines.push(order.note);
+  const firstDish = order.items.map((item) => data.dishes.find((dish) => dish.id === item.dishId)).find((dish) => dish && dish.image);
+  const id = uid("d");
+  data.diaries.unshift({
+    id,
+    date: order.date || chinaTodayStr(),
+    kind: "food",
+    title: `今晚吃了${orderNames(order)}`,
+    content: lines.join("\n"),
+    mood: "🍜",
+    image: firstDish ? firstDish.image : "",
+  });
+  order.diaryId = id;
+  saveData();
+  renderDiaries();
+  renderMenu();
+  showToast("已记进日常");
+}
+
+function renderTicket(order) {
+  if (!order) {
+    return `
+      <article class="menu-ticket is-empty">
+        <div class="ticket-head"><h3>今晚的小票</h3></div>
+        <p>还没点菜。从下面菜单点一道，或者让「今天吃什么」帮你们决定。</p>
+      </article>`;
+  }
+  const locked = order.status === "served";
+  const avoidAll = [...new Set(order.items.flatMap((item) => {
+    const dish = data.dishes.find((entry) => entry.id === item.dishId);
+    return (dish && dish.avoid) || [];
+  }))];
+  const items = order.items
+    .map((item) => {
+      const dish = data.dishes.find((entry) => entry.id === item.dishId);
+      const hints = [];
+      if (dish && dish.cook && dish.cook !== "谁都行") hints.push(`${escapeHtml(dish.cook)}来做`);
+      if (dish && dish.spicy && dish.spicy !== "不辣") hints.push(escapeHtml(dish.spicy));
+      if (dish && dish.recipeId) hints.push(`<button type="button" class="text-btn" data-action="preview-recipe" data-id="${escapeHtml(dish.recipeId)}">看做法</button>`);
+      return `
+        <li class="ticket-item">
+          <div>
+            <strong>${escapeHtml(item.name)}</strong>
+            <span class="ticket-qty">×${item.qty || 1}</span>
+            ${hints.length ? `<small class="ticket-hints">${hints.join(" · ")}</small>` : ""}
+            ${locked
+              ? (item.note ? `<p class="ticket-note-text">${escapeHtml(item.note)}</p>` : "")
+              : `<input class="ticket-note" data-action="item-note" data-id="${order.id}" data-dish="${item.dishId}" value="${escapeHtml(item.note || "")}" placeholder="少盐、多蒜、不要香菜…" />`}
+          </div>
+          ${locked ? "" : `
+            <div class="qty-actions">
+              <button type="button" class="icon-btn" data-action="order-qty" data-id="${order.id}" data-dish="${item.dishId}" data-delta="-1" aria-label="少一份">−</button>
+              <button type="button" class="icon-btn" data-action="order-qty" data-id="${order.id}" data-dish="${item.dishId}" data-delta="1" aria-label="多一份">+</button>
+              <button type="button" class="icon-btn danger" data-action="order-remove-item" data-id="${order.id}" data-dish="${item.dishId}" aria-label="撤掉">×</button>
+            </div>`}
+        </li>`;
+    })
+    .join("");
+  const scheduled = order.scheduleId && data.schedules.some((item) => item.id === order.scheduleId);
+  const diaried = order.diaryId && data.diaries.some((item) => item.id === order.diaryId);
+  return `
+    <article class="menu-ticket">
+      <div class="ticket-head">
+        <div>
+          <h3>${order.date === chinaTodayStr() ? "今晚的小票" : "还没收拾的小票"}</h3>
+          <small>${formatDateDot(order.date)}</small>
+        </div>
+        <span class="ticket-status status-${order.status}">${ORDER_STATUS[order.status] || "已点单"}</span>
+      </div>
+      ${order.items.length ? `<ul class="ticket-list">${items}</ul>` : `<p>小票还是空的，从下面点一道菜吧。</p>`}
+      ${avoidAll.length ? `<p class="ticket-avoid">这单忌口：${escapeHtml(avoidAll.join("、"))}</p>` : ""}
+      ${locked
+        ? (order.note ? `<p class="ticket-note-text">${escapeHtml(order.note)}</p>` : "")
+        : `<input class="ticket-note order-note" data-action="order-note" data-id="${order.id}" value="${escapeHtml(order.note || "")}" placeholder="整单备注，比如：七点开饭" />`}
+      <div class="ticket-actions">
+        ${!locked && order.items.length && ORDER_NEXT[order.status] ? `<button type="button" class="primary-btn small-btn" data-action="order-status" data-id="${order.id}">${ORDER_NEXT_LABEL[order.status]}</button>` : ""}
+        ${ORDER_PREV[order.status] ? `<button type="button" class="ghost-btn small-btn" data-action="order-prev" data-id="${order.id}">退回一步</button>` : ""}
+        ${order.items.length ? `<button type="button" class="secondary-btn small-btn" data-action="order-schedule" data-id="${order.id}">${scheduled ? "已在日程" : "加到日程"}</button>` : ""}
+        ${locked ? `<button type="button" class="secondary-btn small-btn" data-action="order-diary" data-id="${order.id}">${diaried ? "已记日常" : "记进日常"}</button>` : ""}
+        ${locked ? `<button type="button" class="ghost-btn small-btn" data-action="order-again">再点一单</button>` : ""}
+      </div>
+    </article>`;
+}
+
+function renderMenu() {
+  if (!els.menuTicket) return;
+  const current = ticketOrder();
+  els.menuTicket.innerHTML = renderTicket(current);
+
+  const visibleCats = DISH_CATEGORIES.filter((cat) => data.dishes.some((dish) => dish.category === cat));
+  if (activeMenuFilter !== "all" && !visibleCats.includes(activeMenuFilter)) activeMenuFilter = "all";
+  els.menuFilters.innerHTML = data.dishes.length
+    ? `<button type="button" class="${activeMenuFilter === "all" ? "active" : ""}" data-action="filter-dish" data-category="all">全部</button>` +
+      visibleCats
+        .map(
+          (cat) =>
+            `<button type="button" class="${activeMenuFilter === cat ? "active" : ""}" data-action="filter-dish" data-category="${escapeHtml(cat)}">${escapeHtml(cat)}</button>`
+        )
+        .join("")
+    : "";
+
+  const visible = data.dishes
+    .filter((dish) => activeMenuFilter === "all" || dish.category === activeMenuFilter)
+    .sort((a, b) => dishOrderCount(b.id) - dishOrderCount(a.id));
+  const empty = document.getElementById("menuEmpty");
+  if (!data.dishes.length) {
+    empty.hidden = false;
+    empty.textContent = "菜单还是空的。添加一道菜，或从食谱里上架。";
+  } else if (!visible.length) {
+    empty.hidden = false;
+    empty.textContent = "这个分类还没有菜。";
+  } else {
+    empty.hidden = true;
+  }
+
+  const onTicket = new Set((activeOrder() ? activeOrder().items : []).map((item) => item.dishId));
+  els.menuGrid.innerHTML = visible
+    .map((dish) => {
+      const count = dishOrderCount(dish.id);
+      const recipe = dish.recipeId ? data.recipes.find((item) => item.id === dish.recipeId) : null;
+      return `
+        <article class="recipe-card dish-card" data-id="${dish.id}">
+          ${
+            dish.image
+              ? `<div class="recipe-photo"><img src="${resolveImageSrc(dish.image)}" alt="${escapeHtml(dish.name)}" loading="lazy" /></div>`
+              : `<div class="recipe-photo no-photo"><span>🍽</span></div>`
+          }
+          <div class="recipe-body">
+            <div class="recipe-top">
+              <h3>${escapeHtml(dish.name)}</h3>
+              ${SPICY_MARK[dish.spicy] ? `<span class="recipe-rating">${SPICY_MARK[dish.spicy]}</span>` : ""}
+            </div>
+            <div class="dish-tags">
+              <span class="recipe-style">${escapeHtml(dish.category || "小菜")}</span>
+              <span class="recipe-style cook-tag">${escapeHtml(dish.cook || "一起")}</span>
+              ${(dish.avoid || []).map((tag) => `<span class="avoid-tag">忌${escapeHtml(tag)}</span>`).join("")}
+            </div>
+            <small class="dish-heat">${count ? `被点过 ${count} 次` : "还没被点过"}</small>
+            ${dish.note ? `<p class="dish-note">${escapeHtml(dish.note)}</p>` : ""}
+            <div class="card-actions inline">
+              <button type="button" class="primary-btn small-btn" data-action="add-to-order" data-id="${dish.id}">${onTicket.has(dish.id) ? "再来一份" : "点这道"}</button>
+              ${recipe ? `<button type="button" class="ghost-btn small-btn" data-action="preview-recipe" data-id="${recipe.id}">做法</button>` : ""}
+              <button type="button" class="icon-btn" data-action="edit-dish" data-id="${dish.id}" aria-label="编辑">✎</button>
+              <button type="button" class="icon-btn danger" data-action="delete-dish" data-id="${dish.id}" aria-label="删除">×</button>
+            </div>
+          </div>
+        </article>`;
+    })
+    .join("");
+
+  const past = data.orders.filter((order) => order !== current && order.items.length);
+  els.menuHistory.innerHTML = past.length
+    ? `<h3 class="history-title">以前的小票</h3>` +
+      past
+        .map((order) => {
+          const diaried = order.diaryId && data.diaries.some((item) => item.id === order.diaryId);
+          return `
+            <article class="order-history">
+              <div>
+                <strong>${formatDateDot(order.date)} · ${ORDER_STATUS[order.status] || ""}</strong>
+                <p>${escapeHtml(orderNames(order))}</p>
+              </div>
+              <div class="card-actions">
+                ${order.status === "served" ? `<button type="button" class="ghost-btn small-btn" data-action="order-diary" data-id="${order.id}">${diaried ? "已记日常" : "记进日常"}</button>` : ""}
+                <button type="button" class="icon-btn danger" data-action="delete-order" data-id="${order.id}" aria-label="删除">×</button>
+              </div>
+            </article>`;
+        })
+        .join("")
+    : "";
+}
+
+let spinTimer = null;
+let spinStop = null;
+function spinDish() {
+  if (!data.dishes.length) {
+    showToast("先往菜单里加一道菜吧");
+    return;
+  }
+  const box = els.spinResult;
+  box.hidden = false;
+  box.dataset.spinning = "1";
+  const nameEl = document.getElementById("spinName");
+  let i = 0;
+  clearInterval(spinTimer);
+  clearTimeout(spinStop);
+  spinTimer = setInterval(() => {
+    nameEl.textContent = data.dishes[i % data.dishes.length].name;
+    i += 1;
+  }, 80);
+  spinStop = setTimeout(() => {
+    clearInterval(spinTimer);
+    const active = activeOrder();
+    const fresh = data.dishes.filter((dish) => !active || !active.items.some((item) => item.dishId === dish.id));
+    const source = fresh.length ? fresh : data.dishes;
+    const pick = source[Math.floor(Math.random() * source.length)];
+    nameEl.textContent = pick.name;
+    box.dataset.dishId = pick.id;
+    delete box.dataset.spinning;
+  }, 720);
 }
 
 function catAge(birthday) {
@@ -860,6 +1396,8 @@ function escapeHtml(text) {
 function openModal(title, fields, onSubmit) {
   modalContext = { onSubmit };
   els.modalTitle.textContent = title;
+  const submitBtn = document.getElementById("modalSubmit");
+  if (submitBtn) submitBtn.textContent = "保存";
   els.modalForm.innerHTML = fields
     .map((field) => {
       if (field.type === "textarea") {
@@ -872,7 +1410,7 @@ function openModal(title, fields, onSubmit) {
       }
       if (field.type === "select") {
         const options = field.options
-          .map((opt) => `<option value="${opt.value}" ${opt.value === field.value ? "selected" : ""}>${opt.label}</option>`)
+          .map((opt) => `<option value="${escapeHtml(opt.value)}" ${String(opt.value) === String(field.value) ? "selected" : ""}>${escapeHtml(opt.label)}</option>`)
           .join("");
         return `
           <label class="field">
@@ -880,6 +1418,19 @@ function openModal(title, fields, onSubmit) {
             <select name="${field.name}">${options}</select>
           </label>
         `;
+      }
+      if (field.type === "checks") {
+        const selected = new Set(field.value || []);
+        const boxes = field.options
+          .map(
+            (opt) => `
+            <label class="check-chip">
+              <input type="checkbox" name="${field.name}" value="${escapeHtml(opt.value)}" ${selected.has(opt.value) ? "checked" : ""} />
+              ${escapeHtml(opt.label)}
+            </label>`
+          )
+          .join("");
+        return `<fieldset class="field checks-field"><legend>${field.label}</legend><div class="check-row">${boxes}</div></fieldset>`;
       }
       if (field.type === "image") {
         const hasImg = !!field.value;
@@ -1095,6 +1646,46 @@ function recipeFields(item = {}) {
   ];
 }
 
+function dishFields(item = {}) {
+  const recipeOptions = [{ value: "", label: "不关联" }].concat(
+    data.recipes.map((recipe) => ({ value: recipe.id, label: recipe.name }))
+  );
+  return [
+    { label: "菜名", name: "name", value: item.name || "", required: true, placeholder: "比如：番茄炒蛋" },
+    {
+      label: "分类",
+      name: "category",
+      type: "select",
+      value: item.category || "小菜",
+      options: DISH_CATEGORIES.map((cat) => ({ value: cat, label: cat })),
+    },
+    {
+      label: "辣度",
+      name: "spicy",
+      type: "select",
+      value: item.spicy || "不辣",
+      options: SPICY_LEVELS.map((level) => ({ value: level, label: `${level}${SPICY_MARK[level] ? " " + SPICY_MARK[level] : ""}` })),
+    },
+    {
+      label: "谁来做",
+      name: "cook",
+      type: "select",
+      value: item.cook || "一起",
+      options: COOKS.map((cook) => ({ value: cook, label: cook })),
+    },
+    {
+      label: "忌口",
+      name: "avoid",
+      type: "checks",
+      value: item.avoid || [],
+      options: AVOID_TAGS.map((tag) => ({ value: tag, label: tag })),
+    },
+    { label: "关联食谱", name: "recipeId", type: "select", value: item.recipeId || "", options: recipeOptions },
+    { label: "备注", name: "note", value: item.note || "", placeholder: "少盐、多放蒜…" },
+    { label: "图片（可选，会自动压缩）", name: "image", type: "image", value: item.image || "" },
+  ];
+}
+
 function catFields(item = {}) {
   const date = item.date || today.toISOString().slice(0, 10);
   return [
@@ -1136,9 +1727,18 @@ function catHealthFields(item = {}) {
 function getFormValues(form) {
   const values = {};
   new FormData(form).forEach((val, key) => {
-    values[key] = val;
+    if (Object.prototype.hasOwnProperty.call(values, key)) {
+      values[key] = [].concat(values[key], val);
+    } else {
+      values[key] = val;
+    }
   });
   return values;
+}
+
+function asList(value) {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
 }
 
 function icsEscape(text) {
@@ -1348,6 +1948,57 @@ document.getElementById("addNote").addEventListener("click", () => {
   });
 });
 
+document.getElementById("addDish").addEventListener("click", () => {
+  openModal("添加菜品", dishFields(), (values) => {
+    const dish = dishFromValues(values, uid("dish"));
+    if (!dish.image && dish.recipeId) {
+      const recipe = data.recipes.find((item) => item.id === dish.recipeId);
+      if (recipe && recipe.image) dish.image = recipe.image;
+    }
+    data.dishes.unshift(dish);
+    saveData();
+    renderMenu();
+    showToast("菜品已上架");
+  });
+});
+
+document.getElementById("importDish").addEventListener("click", () => {
+  const available = data.recipes.filter((recipe) => !data.dishes.some((dish) => dish.recipeId === recipe.id));
+  if (!available.length) {
+    showToast(data.recipes.length ? "食谱都已经在菜单上了" : "还没有食谱，可以先去记一道做法");
+    return;
+  }
+  openModal("从食谱上架", [
+    {
+      label: "选择食谱",
+      name: "recipeId",
+      type: "select",
+      value: available[0].id,
+      options: available.map((recipe) => ({ value: recipe.id, label: recipe.name })),
+    },
+  ], (values) => {
+    shelfRecipe(data.recipes.find((recipe) => recipe.id === values.recipeId));
+  });
+});
+
+document.getElementById("spinDish").addEventListener("click", spinDish);
+
+document.addEventListener("change", (event) => {
+  const el = event.target;
+  if (!el.dataset || (el.dataset.action !== "item-note" && el.dataset.action !== "order-note")) return;
+  const order = data.orders.find((item) => item.id === el.dataset.id);
+  if (!order || order.status === "served") return;
+  if (el.dataset.action === "item-note") {
+    const line = (order.items || []).find((item) => item.dishId === el.dataset.dish);
+    if (!line) return;
+    line.note = el.value.trim();
+  } else {
+    order.note = el.value.trim();
+  }
+  saveData();
+  renderMenu();
+});
+
 document.getElementById("addRecipe").addEventListener("click", () => {
   openModal("添加食谱", recipeFields(), (values) => {
     data.recipes.unshift({
@@ -1444,9 +2095,126 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (action === "filter-diary") {
+    activeFilter = btn.dataset.filter;
+    renderDiaries();
+    return;
+  }
+
   if (action === "filter-recipe") {
     activeRecipeFilter = btn.dataset.style;
     renderRecipes();
+    return;
+  }
+
+  if (action === "filter-dish") {
+    activeMenuFilter = btn.dataset.category;
+    renderMenu();
+    return;
+  }
+
+  if (action === "add-to-order") {
+    addDishToOrder(id);
+    return;
+  }
+
+  if (action === "shelf-recipe") {
+    shelfRecipe(data.recipes.find((recipe) => recipe.id === id));
+    return;
+  }
+
+  if (action === "preview-recipe") {
+    const recipe = data.recipes.find((item) => item.id === id);
+    if (!recipe) {
+      showToast("这道食谱已经不在了");
+      return;
+    }
+    openModal(`做法 · ${recipe.name}`, [
+      { label: "食材", name: "ingredients", type: "textarea", value: recipe.ingredients || "还没写食材", rows: 3 },
+      { label: "做法", name: "steps", type: "textarea", value: recipe.steps || "", rows: 6 },
+    ], () => {});
+    els.modalForm.querySelectorAll("textarea").forEach((el) => {
+      el.readOnly = true;
+    });
+    const submitBtn = document.getElementById("modalSubmit");
+    if (submitBtn) submitBtn.textContent = "知道了";
+    return;
+  }
+
+  if (action === "spin-again") {
+    spinDish();
+    return;
+  }
+
+  if (action === "spin-close") {
+    els.spinResult.hidden = true;
+    return;
+  }
+
+  if (action === "spin-accept") {
+    if (els.spinResult.dataset.spinning) return;
+    const dishId = els.spinResult.dataset.dishId;
+    if (dishId) addDishToOrder(dishId);
+    els.spinResult.hidden = true;
+    return;
+  }
+
+  if (action === "order-qty") {
+    const order = data.orders.find((item) => item.id === id);
+    const line = order && order.items.find((item) => item.dishId === btn.dataset.dish);
+    if (!order || !line || order.status === "served") return;
+    const next = (line.qty || 1) + Number(btn.dataset.delta || 1);
+    line.qty = Math.max(1, next);
+    saveData();
+    renderMenu();
+    return;
+  }
+
+  if (action === "order-remove-item") {
+    const order = data.orders.find((item) => item.id === id);
+    if (!order || order.status === "served") return;
+    order.items = order.items.filter((item) => item.dishId !== btn.dataset.dish);
+    if (!order.items.length) data.orders = data.orders.filter((item) => item !== order);
+    saveData();
+    renderMenu();
+    return;
+  }
+
+  if (action === "order-status") {
+    const order = data.orders.find((item) => item.id === id);
+    if (!order || !ORDER_NEXT[order.status]) return;
+    order.status = ORDER_NEXT[order.status];
+    saveData();
+    renderMenu();
+    showToast(order.status === "served" ? "上桌啦" : "开始做了");
+    return;
+  }
+
+  if (action === "order-prev") {
+    const order = data.orders.find((item) => item.id === id);
+    if (!order || !ORDER_PREV[order.status]) return;
+    order.status = ORDER_PREV[order.status];
+    saveData();
+    renderMenu();
+    return;
+  }
+
+  if (action === "order-schedule") {
+    const order = data.orders.find((item) => item.id === id);
+    if (order) addOrderToSchedule(order);
+    return;
+  }
+
+  if (action === "order-diary") {
+    const order = data.orders.find((item) => item.id === id);
+    if (order) addOrderToDiary(order);
+    return;
+  }
+
+  if (action === "order-again") {
+    showToast("从下面再点一道，就会开一张新小票");
+    const grid = document.getElementById("menuGrid");
+    if (grid) grid.scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
 
@@ -1481,6 +2249,11 @@ document.addEventListener("click", (event) => {
     } else if (type === "anniversary") {
       const item = data.anniversaries.find((a) => a.id === id);
       if (item) opts = { title: item.name, date: item.date, yearly: item.yearly, remindMinutes: 1440 };
+    } else if (type === "together") {
+      if (data.settings.startDate) opts = { title: "在一起", date: data.settings.startDate, yearly: true, remindMinutes: 1440 };
+    } else if (type === "festival") {
+      const festival = getFestivals().find((item) => item.id === id);
+      if (festival) opts = { title: festival.name, date: nextFestivalDate(festival), note: festival.sub, remindMinutes: 1440 };
     } else if (type === "wish") {
       const item = data.wishes.find((w) => w.id === id);
       if (item && item.targetDate) opts = { title: item.title, date: item.targetDate, note: item.note, remindMinutes: 1440 };
@@ -1504,6 +2277,8 @@ document.addEventListener("click", (event) => {
       schedule: "这个日程",
       note: "这张便签",
       recipe: "这道食谱",
+      dish: "这道菜",
+      order: "这张小票",
       cat: "这条嘻嘻记录",
       cathealth: "这条健康提醒",
     };
@@ -1518,6 +2293,8 @@ document.addEventListener("click", (event) => {
       schedule: "schedules",
       note: "sweetNotes",
       recipe: "recipes",
+      dish: "dishes",
+      order: "orders",
       cat: "cats",
       cathealth: "catHealth",
     };
@@ -1603,6 +2380,15 @@ document.addEventListener("click", (event) => {
         showToast("便签已更新");
       });
     }
+    if (type === "dish") {
+      const item = data.dishes.find((dish) => dish.id === id);
+      openModal("编辑菜品", dishFields(item), (values) => {
+        Object.assign(item, dishFromValues(values, item.id));
+        saveData();
+        renderMenu();
+        showToast("菜品已更新");
+      });
+    }
     if (type === "recipe") {
       const item = data.recipes.find((r) => r.id === id);
       openModal("编辑食谱", recipeFields(item), (values) => {
@@ -1653,15 +2439,6 @@ document.addEventListener("click", (event) => {
   }
 });
 
-document.querySelectorAll(".filters button").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll(".filters button").forEach((item) => item.classList.remove("active"));
-    button.classList.add("active");
-    activeFilter = button.dataset.filter;
-    renderDiaries();
-  });
-});
-
 function openDrawer() {
   els.drawerBackdrop.hidden = false;
   els.sideDrawer.classList.add("open");
@@ -1683,11 +2460,12 @@ document.addEventListener("keydown", (event) => {
 
 // 视图切换 + hash 路由:一次只显示一个板块,底部 tab 做主导航
 const VIEWS = {
-  home: [".hero", ".quick-entry", ".story-panel"],
+  home: [".hero", ".quick-entry", ".today-board"],
   diary: [".diary-section"],
   schedule: [".schedule-section"],
   wishlist: [".wish-section"],
   recipes: [".recipe-section"],
+  menu: [".menu-section"],
   cat: [".cat-section"],
   album: [".album-section"],
   notes: [".notes-section"],
@@ -1700,6 +2478,7 @@ const VIEW_OF = {
   schedule: "schedule",
   wishlist: "wishlist",
   recipes: "recipes",
+  menu: "menu",
   cat: "cat",
   album: "album",
   notes: "notes",
@@ -2421,7 +3200,7 @@ async function cloudPull() {
   const remoteTime = remote.data._updatedAt || 0;
   const localTime = data._updatedAt || 0;
   if (remoteTime >= localTime) {
-    data = remote.data;
+    data = normalizeData(remote.data);
     saveData({ skipCloud: true });
     renderAll();
     setSyncStatus("ok", "已拉取云端最新数据");
@@ -2442,6 +3221,7 @@ async function migrateImagesToRepo() {
   (data.diaries || []).forEach((x) => scan(x, "image"));
   (data.memories || []).forEach((x) => scan(x, "image"));
   (data.recipes || []).forEach((x) => scan(x, "image"));
+  (data.dishes || []).forEach((x) => scan(x, "image"));
   (data.cats || []).forEach((x) => scan(x, "image"));
   scan(data.catProfile, "avatar");
   if (!targets.length) return;

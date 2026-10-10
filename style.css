@@ -270,6 +270,14 @@ footer {
   font-weight: 800;
 }
 
+.drawer-label {
+  margin: 12px 4px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
 .side-drawer a {
   border: 2px solid var(--line);
   border-radius: 12px;
@@ -348,6 +356,7 @@ main {
 .hero-card,
 .upcoming,
 .quick-entry,
+.today-board,
 .diary-section,
 .wish-section,
 .album-section,
@@ -364,6 +373,7 @@ main {
 body.night .hero-card,
 body.night .upcoming,
 body.night .quick-entry,
+body.night .today-board,
 body.night .diary-section,
 body.night .wish-section,
 body.night .album-section,
@@ -701,6 +711,7 @@ body.night .festival-countdown {
 
 .upcoming,
 .quick-entry,
+.today-board,
 .diary-section,
 .wish-section,
 .album-section {
@@ -942,7 +953,7 @@ body.night .festival-countdown {
 
 .entry-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 18px;
 }
 
@@ -1011,6 +1022,20 @@ body.night .festival-countdown {
     radial-gradient(circle at 35% 40%, var(--ribbon) 0 5px, transparent 6px),
     radial-gradient(circle at 63% 40%, var(--ribbon) 0 5px, transparent 6px),
     radial-gradient(ellipse at 50% 58%, #f6cf64 0 5px, transparent 6px);
+}
+
+.menu-illus { background: #ffd6e0; }
+.menu-illus::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  top: 34px;
+  width: 46px;
+  height: 18px;
+  border: 3px solid var(--line);
+  border-radius: 0 0 22px 22px;
+  background: #fff;
+  box-shadow: 0 -10px 0 #f6cf64;
 }
 
 .wish-illus { background: #b7b3f0; }
@@ -2249,12 +2274,14 @@ footer {
 .hero-card,
 .upcoming,
 .quick-entry,
+.today-board,
 .diary-section,
 .wish-section,
 .album-section,
 .notes-section,
 .schedule-section,
 .recipe-section,
+.menu-section,
 .cat-section,
 .map-section {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.70));
@@ -2267,12 +2294,14 @@ footer {
 body.night .hero-card,
 body.night .upcoming,
 body.night .quick-entry,
+body.night .today-board,
 body.night .diary-section,
 body.night .wish-section,
 body.night .album-section,
 body.night .notes-section,
 body.night .schedule-section,
 body.night .recipe-section,
+body.night .menu-section,
 body.night .cat-section,
 body.night .map-section {
   background: linear-gradient(135deg, rgba(52, 45, 49, 0.96), rgba(45, 39, 43, 0.82));
@@ -2494,11 +2523,13 @@ main {
 }
 .upcoming,
 .quick-entry,
+.today-board,
 .diary-section,
 .wish-section,
 .album-section,
 .schedule-section,
 .recipe-section,
+.menu-section,
 .cat-section,
 .notes-section,
 .map-section {
@@ -2587,4 +2618,406 @@ body.night .hero-card {
 .section-title.centered h2::after {
   left: 50%;
   transform: translateX(-50%);
+}
+
+.today-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.today-card {
+  display: grid;
+  gap: 4px;
+  min-height: 112px;
+  padding: 14px 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow-soft);
+}
+
+.today-card span {
+  color: var(--orange);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.today-card strong {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.today-card small {
+  color: var(--muted);
+}
+
+.schedule-list {
+  display: grid;
+  gap: 12px;
+}
+
+.schedule-list .history-title {
+  margin: 8px 0 0;
+}
+
+body.night .today-card {
+  background: rgba(43, 38, 38, 0.9);
+}
+
+.head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.menu-ticket,
+.spin-result,
+.order-history {
+  border: 1px dashed rgba(188, 70, 100, 0.45);
+  border-radius: 18px;
+  background:
+    linear-gradient(#fff7fb, #fff);
+  box-shadow: var(--shadow-soft);
+}
+
+.menu-ticket,
+.spin-result {
+  padding: 16px 16px 14px;
+  margin-bottom: 16px;
+}
+
+.menu-ticket.is-empty p,
+.spin-result p {
+  margin: 8px 0 0;
+  color: var(--muted);
+}
+
+.ticket-head,
+.order-history {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.ticket-head {
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px dashed rgba(188, 70, 100, 0.35);
+}
+
+.ticket-head h3,
+.history-title {
+  margin: 0;
+}
+
+.ticket-head small,
+.ticket-hints,
+.dish-heat,
+.dish-note,
+.ticket-note-text,
+.ticket-avoid {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ticket-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ticket-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px dotted rgba(188, 70, 100, 0.28);
+}
+
+.ticket-qty {
+  margin-left: 6px;
+  font-weight: 800;
+}
+
+.ticket-hints {
+  display: block;
+  margin-top: 2px;
+}
+
+.ticket-note,
+.order-note {
+  width: 100%;
+  margin-top: 8px;
+  border: 0;
+  border-bottom: 1px dashed rgba(188, 70, 100, 0.4);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  padding: 6px 0;
+}
+
+.ticket-note-text,
+.ticket-avoid,
+.dish-note {
+  margin: 6px 0 0;
+}
+
+.ticket-status {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--pink-soft);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.status-cooking { background: var(--lemon); }
+.status-served { background: var(--mint); }
+
+.ticket-actions,
+.qty-actions,
+.dish-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.ticket-actions { margin-top: 12px; }
+
+.spin-result {
+  text-align: center;
+}
+
+.spin-result strong {
+  display: block;
+  margin: 4px 0 10px;
+  font-size: 28px;
+}
+
+.spin-result[data-spinning="1"] strong {
+  animation: spin-flicker 0.12s linear infinite;
+}
+
+@keyframes spin-flicker {
+  50% { opacity: 0.35; }
+}
+
+.avoid-tag,
+.cook-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fff0f4;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cook-tag {
+  background: var(--blue);
+}
+
+.text-btn {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--orange);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.check-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.check-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 14px;
+}
+
+.checks-field {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.checks-field legend {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.menu-history {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.order-history {
+  padding: 12px 14px;
+}
+
+.order-history p {
+  margin: 4px 0 0;
+}
+
+.card-actions .primary-btn,
+.card-actions .secondary-btn,
+.card-actions .ghost-btn {
+  width: auto;
+}
+
+body.night .menu-ticket,
+body.night .spin-result,
+body.night .order-history,
+body.night .check-chip {
+  background: rgba(43, 38, 38, 0.9);
+}
+
+body.night .ticket-note,
+body.night .order-note {
+  color: var(--ink);
+}
+
+@media (max-width: 620px) {
+  .head-actions {
+    display: grid;
+  }
+}
+
+/* 每百天：临近 30 天预告，当天首页换成庆祝 */
+.milestone-banner.soon {
+  display: block;
+  width: min(100%, 520px);
+  padding: 14px 18px;
+  border-radius: 22px;
+  background: linear-gradient(120deg, #ff8faf, #ffc56b);
+  font-size: clamp(18px, 4.2vw, 26px);
+  line-height: 1.35;
+  box-shadow: 0 16px 36px rgba(233, 52, 88, 0.32);
+}
+
+.hero-card.hundred-soon {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 196, 92, 0.45), transparent 42%),
+    linear-gradient(160deg, #fff8ee 0%, #ffe8f1 55%, #fff 100%);
+  border: 2px solid #f0b15a;
+  box-shadow: 0 22px 50px rgba(214, 140, 60, 0.22);
+}
+
+.hero-card.hundred {
+  background:
+    radial-gradient(circle at 8% 12%, rgba(255, 214, 102, 0.7), transparent 32%),
+    radial-gradient(circle at 92% 8%, rgba(255, 122, 162, 0.62), transparent 36%),
+    radial-gradient(circle at 50% 100%, rgba(255, 182, 193, 0.45), transparent 42%),
+    linear-gradient(165deg, #fff1c9 0%, #ffd0e0 46%, #fff7fb 100%);
+  border: 3px solid #ff7aa2;
+  box-shadow: 0 28px 64px rgba(233, 52, 88, 0.28);
+}
+
+.hero-card.hundred .milestone-banner {
+  display: block;
+  width: min(100%, 560px);
+  padding: 16px 20px;
+  border-radius: 24px;
+  font-size: clamp(22px, 5vw, 34px);
+  background: linear-gradient(120deg, #ff4f86, #ffb03a);
+}
+
+.hero-card.hundred .love-count p {
+  color: #c45378;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.hero-card.hundred .love-count strong {
+  background: linear-gradient(120deg, #e23d6b, #f5a623 55%, #ff7aa2);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: ms-beat 1.1s ease-in-out infinite;
+}
+
+.today-board.hundred-soon,
+.today-board.hundred {
+  border: 2px solid #f0b15a;
+}
+
+.today-board.hundred {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 196, 92, 0.35), transparent 40%),
+    linear-gradient(135deg, rgba(255, 244, 230, 0.98), rgba(255, 228, 238, 0.9));
+  border-color: #ff7aa2;
+}
+
+.today-card.hundred,
+.today-card.hundred-soon {
+  grid-column: 1 / -1;
+  min-height: 132px;
+  background: linear-gradient(120deg, #fff4d8, #ffe3ee);
+  border: 2px solid #f0b15a;
+}
+
+.today-card.hundred {
+  min-height: 156px;
+  background: linear-gradient(120deg, #ffe08a, #ffb3cb);
+  border-color: #ff4f86;
+}
+
+.today-card.hundred span,
+.today-card.hundred-soon span {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.today-card.hundred strong,
+.today-card.hundred-soon strong {
+  font-size: clamp(28px, 6vw, 42px);
+  line-height: 1.15;
+}
+
+.today-card.hundred small,
+.today-card.hundred-soon small {
+  color: #7a4e5c;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+body:has(.hero-card.hundred) {
+  background:
+    radial-gradient(ellipse 70% 48% at 50% 0%, rgba(255, 196, 92, 0.55), transparent 62%),
+    radial-gradient(ellipse 55% 40% at 0% 20%, rgba(255, 122, 162, 0.35), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 100% 30%, rgba(255, 182, 193, 0.4), transparent 58%),
+    #fff4ea;
+}
+
+body.night .hero-card.hundred-soon,
+body.night .today-card.hundred-soon {
+  background: linear-gradient(160deg, #3a3030, #4a342c);
+  border-color: #c9893a;
+}
+
+body.night .hero-card.hundred,
+body.night .today-board.hundred,
+body.night .today-card.hundred {
+  background: linear-gradient(165deg, #4a2a32, #3a2a22 55%, #2c2428);
+  border-color: #e07a98;
+}
+
+body.night:has(.hero-card.hundred) {
+  background:
+    radial-gradient(ellipse 70% 48% at 50% 0%, rgba(224, 122, 90, 0.35), transparent 62%),
+    #241c1e;
 }

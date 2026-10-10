@@ -40,12 +40,16 @@
       <span>导航</span>
       <button class="icon-btn" id="drawerClose" aria-label="关闭导航">×</button>
     </div>
+    <p class="drawer-label">我们</p>
     <a class="active" href="#home">首页</a>
     <a href="#diary">日常</a>
     <a href="#anniversary">纪念日</a>
     <a href="#schedule">日程</a>
     <a href="#wishlist">心愿</a>
+    <p class="drawer-label">吃</p>
     <a href="#recipes">食谱</a>
+    <a href="#menu">点菜</a>
+    <p class="drawer-label">家里</p>
     <a href="#cat">嘻嘻</a>
     <a href="#album">相册</a>
     <a href="#notes">便签</a>
@@ -92,6 +96,14 @@
       </section>
     </section>
 
+    <section class="today-board" aria-labelledby="todayTitle">
+      <div class="section-title">
+        <span class="tiny-icon star-icon"></span>
+        <h2 id="todayTitle">今天</h2>
+      </div>
+      <div class="today-grid" id="todayGrid"></div>
+    </section>
+
     <section class="quick-entry" aria-labelledby="quickTitle">
       <div class="section-title">
         <span class="tiny-icon star-icon"></span>
@@ -103,39 +115,26 @@
           <strong>日常记录</strong>
           <small>写下今天的粉色小事</small>
         </a>
-        <a class="entry-card" href="#anniversary">
+        <a class="entry-card" href="#menu">
+          <span class="entry-illustration menu-illus"></span>
+          <strong>今晚点菜</strong>
+          <small>想吃什么，出一张小票</small>
+        </a>
+        <a class="entry-card" href="#recipes">
           <span class="entry-illustration date-illus"></span>
-          <strong>纪念日</strong>
-          <small>重要日子系上蝴蝶结</small>
+          <strong>我们的食谱</strong>
+          <small>做过的菜都留在这里</small>
         </a>
-        <a class="entry-card" href="#wishlist">
+        <a class="entry-card" href="#cat">
           <span class="entry-illustration wish-illus"></span>
-          <strong>心愿清单</strong>
-          <small>一起慢慢打勾</small>
+          <strong>猫主子嘻嘻</strong>
+          <small>吃喝玩睡和健康提醒</small>
         </a>
-        <a class="entry-card" href="#album">
+        <a class="entry-card" href="#schedule">
           <span class="entry-illustration album-illus"></span>
-          <strong>回忆相册</strong>
-          <small>存放甜甜瞬间</small>
+          <strong>日程安排</strong>
+          <small>接下来想一起做的事</small>
         </a>
-      </div>
-    </section>
-
-    <section class="story-panel">
-      <div class="scene-card river-scene" role="img" aria-label="两个人在河边散步的插画">
-        <span class="sun"></span>
-        <span class="cloud c1"></span>
-        <span class="cloud c2"></span>
-        <span class="bridge"></span>
-        <span class="walker one"></span>
-        <span class="walker two"></span>
-      </div>
-      <div class="scene-card road-scene" role="img" aria-label="两个人骑车去看海的插画">
-        <span class="skyline"></span>
-        <span class="petal p1"></span>
-        <span class="petal p2"></span>
-        <span class="scooter"></span>
-        <span class="balloon"></span>
       </div>
     </section>
 
@@ -154,20 +153,10 @@
       <div class="stats-row">
         <article><strong id="monthCount">0</strong><span>本月记录</span></article>
         <article><strong id="totalCount">0</strong><span>总记录数</span></article>
-        <article><strong id="relatedDays">0</strong><span>相恋天数</span></article>
+        <article><strong id="sinceLast">—</strong><span>距上次记录</span></article>
       </div>
 
-      <div class="filters" aria-label="日常筛选">
-        <button class="active" data-filter="all">全部</button>
-        <button data-filter="date">约会</button>
-        <button data-filter="food">美食</button>
-        <button data-filter="travel">旅行</button>
-        <button data-filter="movie">影视</button>
-        <button data-filter="sport">运动</button>
-        <button data-filter="shopping">逛街</button>
-        <button data-filter="beauty">美容</button>
-        <button data-filter="home">宅家</button>
-      </div>
+      <div class="filters" id="diaryFilters" aria-label="日常筛选"></div>
 
       <div class="timeline" id="timeline"></div>
       <p class="empty-hint" id="diaryEmpty" hidden>还没有记录，点右上角添加第一条粉色日常吧～</p>
@@ -226,6 +215,37 @@
       <p class="empty-hint" id="recipeEmpty" hidden>还没有食谱，点右上角记录第一道一起做的菜吧～</p>
     </section>
 
+    <section class="menu-section" id="menu" aria-labelledby="menuTitle">
+      <div class="section-head">
+        <div>
+          <div class="section-title">
+            <span class="tiny-icon heart-icon"></span>
+            <h2 id="menuTitle">今晚点菜</h2>
+          </div>
+          <p>从菜单里点今晚想吃的，生成一张小票。做好了就上桌，还能记进日程和日常。</p>
+        </div>
+        <div class="head-actions">
+          <button class="secondary-btn" id="spinDish" type="button">今天吃什么</button>
+          <button class="secondary-btn" id="importDish" type="button">从食谱上架</button>
+          <button class="primary-btn" id="addDish" type="button">+ 添加菜品</button>
+        </div>
+      </div>
+      <div id="menuTicket"></div>
+      <div class="spin-result" id="spinResult" hidden>
+        <p>今天就吃</p>
+        <strong id="spinName">…</strong>
+        <div class="ticket-actions">
+          <button class="primary-btn small-btn" type="button" data-action="spin-accept">就点这道</button>
+          <button class="secondary-btn small-btn" type="button" data-action="spin-again">再转一次</button>
+          <button class="ghost-btn small-btn" type="button" data-action="spin-close">收起</button>
+        </div>
+      </div>
+      <div class="filters" id="menuFilters" aria-label="菜品分类"></div>
+      <div class="recipe-grid" id="menuGrid"></div>
+      <p class="empty-hint" id="menuEmpty" hidden>菜单还是空的。添加一道菜，或从食谱里上架。</p>
+      <div class="menu-history" id="menuHistory"></div>
+    </section>
+
     <section class="cat-section" id="cat" aria-labelledby="catTitle">
       <div class="section-head">
         <div>
@@ -258,9 +278,9 @@
         <div>
           <div class="section-title centered">
             <span class="tiny-icon heart-icon"></span>
-            <h2 id="albumTitle">继续创造属于我们的故事</h2>
+            <h2 id="albumTitle">回忆相册</h2>
           </div>
-          <p class="album-copy">每一次出发、每一顿晚餐、每一个被记住的小瞬间，都可以贴上蝴蝶结认真收藏。</p>
+          <p class="album-copy">把想单独留下来的瞬间放在这里，和流水账分开收藏。</p>
         </div>
         <button class="secondary-btn" id="addMemory">+ 添加回忆</button>
       </div>
