@@ -34,6 +34,15 @@ const SITE_DATA = {
   },
   "diaries": [
     {
+      "id": "dmv4p3f8u9fqn",
+      "date": "2026-10-12",
+      "kind": "date",
+      "title": "善良的小雪给小周的生日礼物",
+      "content": "应该是小周多年来收到的第一份生日礼物",
+      "mood": "🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸🌸",
+      "image": "img_mv4p3dfyugog.jpg"
+    },
+    {
       "id": "dmrcvxe4b6xik",
       "date": "2026-07-08",
       "kind": "home",
@@ -120,7 +129,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1791618957483,
+  "_updatedAt": 1791775877358,
   "recipes": [
     {
       "id": "rmqjn21096auy",
