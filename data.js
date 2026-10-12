@@ -120,7 +120,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1791289557066,
+  "_updatedAt": 1791618957483,
   "recipes": [
     {
       "id": "rmqjn21096auy",
@@ -187,5 +187,85 @@ const SITE_DATA = {
       "cycleDays": 90,
       "note": ""
     }
-  ]
+  ],
+  "dishes": [
+    {
+      "id": "dish-rmqjn21096auy",
+      "name": "凉拌紫甘蓝",
+      "category": "小菜",
+      "spicy": "微辣",
+      "cook": "一起",
+      "avoid": [],
+      "recipeId": "rmqjn21096auy",
+      "image": "img_mr20cglkaty9.jpg",
+      "note": ""
+    },
+    {
+      "id": "dish-rmqafut70a5h5",
+      "name": "茄辣西",
+      "category": "小菜",
+      "spicy": "中辣",
+      "cook": "一起",
+      "avoid": [],
+      "recipeId": "rmqafut70a5h5",
+      "image": "img_mr20cikmgncb.jpg",
+      "note": ""
+    },
+    {
+      "id": "dish-mgr4k9x02a1b",
+      "name": "番茄炒蛋",
+      "category": "小菜",
+      "spicy": "不辣",
+      "cook": "一起",
+      "avoid": [],
+      "recipeId": "",
+      "image": "",
+      "note": ""
+    },
+    {
+      "id": "dish-mgr4k9x02a2c",
+      "name": "青椒炒肉",
+      "category": "小菜",
+      "spicy": "微辣",
+      "cook": "一起",
+      "avoid": [],
+      "recipeId": "",
+      "image": "",
+      "note": ""
+    },
+    {
+      "id": "dish-mgr4k9x02a3d",
+      "name": "麻婆豆腐",
+      "category": "小菜",
+      "spicy": "中辣",
+      "cook": "一起",
+      "avoid": [],
+      "recipeId": "",
+      "image": "",
+      "note": ""
+    },
+    {
+      "id": "dish-mgr4k9x02a4e",
+      "name": "紫菜蛋花汤",
+      "category": "汤",
+      "spicy": "不辣",
+      "cook": "一起",
+      "avoid": [],
+      "recipeId": "",
+      "image": "",
+      "note": ""
+    },
+    {
+      "id": "dish-mgr4k9x02a5f",
+      "name": "清炒时蔬",
+      "category": "小菜",
+      "spicy": "不辣",
+      "cook": "一起",
+      "avoid": [],
+      "recipeId": "",
+      "image": "",
+      "note": ""
+    }
+  ],
+  "orders": []
 };
