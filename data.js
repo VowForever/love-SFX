@@ -129,7 +129,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1792232224039,
+  "_updatedAt": 1792309632089,
   "recipes": [
     {
       "id": "rmqjn21096auy",
@@ -198,6 +198,17 @@ const SITE_DATA = {
     }
   ],
   "dishes": [
+    {
+      "id": "dishmvdivn15q87l",
+      "name": "🥦炒腊肠",
+      "category": "小菜",
+      "spicy": "微辣",
+      "cook": "小周",
+      "avoid": [],
+      "recipeId": "",
+      "image": "",
+      "note": ""
+    },
     {
       "id": "dish-rmqjn21096auy",
       "name": "凉拌紫甘蓝",
