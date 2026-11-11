@@ -129,7 +129,7 @@ const SITE_DATA = {
       "color": "lemon"
     }
   ],
-  "_updatedAt": 1793537023607,
+  "_updatedAt": 1794387881971,
   "recipes": [
     {
       "id": "rmqjn21096auy",
@@ -287,5 +287,14 @@ const SITE_DATA = {
       "note": ""
     }
   ],
-  "orders": []
+  "orders": [],
+  "juCats": [],
+  "juProfile": {
+    "name": "小橘",
+    "avatar": "img_mwbw7ozf3njp.jpg",
+    "birthday": "",
+    "breed": "",
+    "weight": null
+  },
+  "juHealth": []
 };
