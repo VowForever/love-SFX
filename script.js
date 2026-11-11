@@ -29,7 +29,7 @@ const today = new Date();
 let data = loadData();
 let activeFilter = "all";
 let activeRecipeFilter = "all";
-let activeCatFilter = "all";
+const activeCatFilters = { cat: "all", xiaoju: "all" };
 let activeMenuFilter = "all";
 let modalContext = null;
 
@@ -162,6 +162,9 @@ function normalizeData(d) {
   d.cats = d.cats || [];
   d.catProfile = d.catProfile || {};
   d.catHealth = d.catHealth || [];
+  d.juCats = d.juCats || [];
+  d.juProfile = d.juProfile || {};
+  d.juHealth = d.juHealth || [];
   d.dishes = Array.isArray(d.dishes) ? d.dishes : structuredClone((SITE_DATA && SITE_DATA.dishes) || []);
   d.orders = (Array.isArray(d.orders) ? d.orders : []).map((order) => ({
     ...order,
@@ -601,16 +604,19 @@ function renderToday() {
     cards.push({ href: "#wishlist", kicker: "心愿", title: wish.title, meta: wish.note || "还没完成" });
   }
 
-  const health = (data.catHealth || [])
-    .map((item) => ({ item, info: catHealthInfo(item) }))
-    .find((row) => row.info.state === "overdue" || row.info.state === "soon");
-  if (health) {
-    cards.push({
-      href: "#cat",
-      kicker: "嘻嘻",
-      title: health.item.name || health.item.type,
-      meta: health.info.state === "overdue" ? `已过期 ${Math.abs(health.info.daysLeft)} 天` : `还有 ${health.info.daysLeft} 天`,
-    });
+  for (const pet of PETS) {
+    const health = (data[pet.healthKey] || [])
+      .map((item) => ({ item, info: catHealthInfo(item) }))
+      .find((row) => row.info.state === "overdue" || row.info.state === "soon");
+    if (health) {
+      cards.push({
+        href: "#" + pet.id,
+        kicker: pet.name,
+        title: health.item.name || health.item.type,
+        meta: health.info.state === "overdue" ? `已过期 ${Math.abs(health.info.daysLeft)} 天` : `还有 ${health.info.daysLeft} 天`,
+      });
+      break;
+    }
   }
 
   grid.innerHTML = cards
@@ -1176,37 +1182,98 @@ const CAT_BLUEWHITE_SVG = `
       <path d="M32 43 Q32 46 36 46" fill="none" stroke="#cf93a6" stroke-width="1.4" stroke-linecap="round"/>
     </svg>`;
 
-function catAvatarMarkup(avatar) {
+const CAT_ORANGE_SVG = `
+    <svg class="cat-doodle" viewBox="0 0 64 64" role="img" aria-label="橘猫头像" xmlns="http://www.w3.org/2000/svg">
+      <path d="M13 22 L19 6 L31 19 Z" fill="#f0a24a"/>
+      <path d="M51 22 L45 6 L33 19 Z" fill="#f0a24a"/>
+      <path d="M18 18 L21 9 L27 17 Z" fill="#f3b6c4"/>
+      <path d="M46 18 L43 9 L37 17 Z" fill="#f3b6c4"/>
+      <circle cx="32" cy="35" r="21" fill="#f0a24a"/>
+      <path d="M27 17 L26 24" stroke="#d97f2e" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M32 16 L32 23" stroke="#d97f2e" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M37 17 L38 24" stroke="#d97f2e" stroke-width="2.4" stroke-linecap="round"/>
+      <ellipse cx="32" cy="44" rx="13" ry="9.5" fill="#fff3dd"/>
+      <ellipse cx="23" cy="32" rx="4" ry="5" fill="#9ec96f"/>
+      <ellipse cx="41" cy="32" rx="4" ry="5" fill="#9ec96f"/>
+      <ellipse cx="23" cy="33" rx="1.7" ry="3.6" fill="#3a2f28"/>
+      <ellipse cx="41" cy="33" rx="1.7" ry="3.6" fill="#3a2f28"/>
+      <path d="M29 40 L35 40 L32 44 Z" fill="#ef8fa0"/>
+      <path d="M32 44 Q32 47 28 47" fill="none" stroke="#c97b3a" stroke-width="1.4" stroke-linecap="round"/>
+      <path d="M32 44 Q32 47 36 47" fill="none" stroke="#c97b3a" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>`;
+
+// 宠物注册表：嘻嘻用旧字段，小橘用新增的 ju* 字段，互不影响
+const PETS = [
+  {
+    id: "cat",
+    name: "嘻嘻",
+    profileKey: "catProfile",
+    catsKey: "cats",
+    healthKey: "catHealth",
+    addBtn: "addCat",
+    addHealthBtn: "addCatHealth",
+    profileEl: "catProfile",
+    weightEl: "catWeight",
+    healthEl: "catHealthList",
+    filtersEl: "catFilters",
+    gridEl: "catGrid",
+    healthEmptyEl: "catHealthEmpty",
+    gridEmptyEl: "catEmpty",
+    avatarFallback: CAT_BLUEWHITE_SVG,
+    doodleName: "蓝白猫",
+  },
+  {
+    id: "xiaoju",
+    name: "小橘",
+    profileKey: "juProfile",
+    catsKey: "juCats",
+    healthKey: "juHealth",
+    addBtn: "addJuCat",
+    addHealthBtn: "addJuCatHealth",
+    profileEl: "juProfile",
+    weightEl: "juWeight",
+    healthEl: "juHealthList",
+    filtersEl: "juFilters",
+    gridEl: "juGrid",
+    healthEmptyEl: "juHealthEmpty",
+    gridEmptyEl: "juEmpty",
+    avatarFallback: CAT_ORANGE_SVG,
+    doodleName: "橘猫",
+  },
+];
+const PET_BY_ID = Object.fromEntries(PETS.map((p) => [p.id, p]));
+
+function catAvatarMarkup(avatar, pet) {
   const src = resolveImageSrc(avatar);
-  return src ? `<img src="${src}" alt="嘻嘻" />` : CAT_BLUEWHITE_SVG;
+  return src ? `<img src="${src}" alt="${escapeHtml(pet.name)}" />` : pet.avatarFallback;
 }
 
-function renderCatProfile() {
-  const p = data.catProfile || {};
+function renderCatProfile(pet) {
+  const p = data[pet.profileKey] || {};
   const lines = [];
   if (p.breed) lines.push(`<span>${escapeHtml(p.breed)}</span>`);
   const age = catAge(p.birthday);
   if (age) lines.push(`<span>${age}</span>`);
   if (p.weight) lines.push(`<span>${escapeHtml(String(p.weight))} kg</span>`);
-  els.catProfile.innerHTML = `
-    <div class="cat-avatar">${catAvatarMarkup(p.avatar)}</div>
+  document.getElementById(pet.profileEl).innerHTML = `
+    <div class="cat-avatar">${catAvatarMarkup(p.avatar, pet)}</div>
     <div class="cat-info">
-      <h3>${escapeHtml(p.name || "嘻嘻")}</h3>
-      <div class="cat-meta">${lines.join("") || "<span>点右边铅笔，填上嘻嘻的小档案～</span>"}</div>
+      <h3>${escapeHtml(p.name || pet.name)}</h3>
+      <div class="cat-meta">${lines.join("") || `<span>点右边铅笔，填上${escapeHtml(pet.name)}的小档案～</span>`}</div>
     </div>
-    <button class="icon-btn" data-action="edit-cat-profile" aria-label="编辑档案">✎</button>
+    <button class="icon-btn" data-action="edit-cat-profile" data-pet="${pet.id}" aria-label="编辑档案">✎</button>
   `;
 }
 
 const CAT_HEALTH_TYPES = ["疫苗", "体内驱虫", "体外驱虫", "驱虫(体内外)", "体检", "其他"];
 
-function renderCatWeight() {
-  const pts = data.cats
+function renderCatWeight(pet) {
+  const pts = (data[pet.catsKey] || [])
     .filter((c) => c.date && c.weight != null && !isNaN(Number(c.weight)))
     .map((c) => ({ date: c.date, w: Number(c.weight) }))
     .sort((a, b) => a.date.localeCompare(b.date));
   if (pts.length < 2) {
-    els.catWeight.innerHTML = `<div class="cat-weight-empty">记两条以上带体重的记录，这里就会出现嘻嘻的体重变化曲线～</div>`;
+    document.getElementById(pet.weightEl).innerHTML = `<div class="cat-weight-empty">记两条以上带体重的记录，这里就会出现${escapeHtml(pet.name)}的体重变化曲线～</div>`;
     return;
   }
   const ws = pts.map((p) => p.w);
@@ -1234,12 +1301,12 @@ function renderCatWeight() {
   const last = pts[pts.length - 1];
   const diff = last.w - first.w;
   const trend = diff > 0 ? `↑ 重了 ${diff.toFixed(1)} kg` : diff < 0 ? `↓ 轻了 ${Math.abs(diff).toFixed(1)} kg` : "和最初持平";
-  els.catWeight.innerHTML = `
+  document.getElementById(pet.weightEl).innerHTML = `
     <div class="cat-weight-head">
       <span class="cat-weight-title">⚖ 体重曲线</span>
       <span class="cat-weight-now">最新 ${last.w} kg · ${trend}</span>
     </div>
-    <svg class="cat-weight-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="嘻嘻体重变化曲线">
+    <svg class="cat-weight-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(pet.name)}体重变化曲线">
       <path d="${area}" fill="rgba(255,143,171,0.16)" />
       <path d="${line}" fill="none" stroke="#ff6f91" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
       ${dots}
@@ -1261,9 +1328,9 @@ function catHealthInfo(item) {
   return { state, daysLeft, nextDate: nextStr };
 }
 
-function renderCatHealth() {
-  const list = data.catHealth || [];
-  document.getElementById("catHealthEmpty").hidden = list.length > 0;
+function renderCatHealth(pet) {
+  const list = data[pet.healthKey] || [];
+  document.getElementById(pet.healthEmptyEl).hidden = list.length > 0;
   const rows = list.map((it) => ({ it, info: catHealthInfo(it) }));
   rows.sort((a, b) => {
     const ra = a.info.nextDate ? 0 : 1;
@@ -1272,7 +1339,7 @@ function renderCatHealth() {
     if (a.info.nextDate && b.info.nextDate) return a.info.daysLeft - b.info.daysLeft;
     return 0;
   });
-  els.catHealthList.innerHTML = rows
+  document.getElementById(pet.healthEl).innerHTML = rows
     .map(({ it, info }) => {
       let cls = info.state;
       let badge = "未设时间";
@@ -1296,41 +1363,42 @@ function renderCatHealth() {
           ${it.note ? `<p class="health-note">${escapeHtml(it.note)}</p>` : ""}
         </div>
         <div class="health-actions">
-          ${info.nextDate ? `<button class="ghost-btn small-btn" data-action="calendar" data-type="cathealth" data-id="${it.id}">加入日历</button>` : ""}
-          <button class="icon-btn" data-action="edit-cathealth" data-id="${it.id}" aria-label="编辑">✎</button>
-          <button class="icon-btn danger" data-action="delete-cathealth" data-id="${it.id}" aria-label="删除">×</button>
+          ${info.nextDate ? `<button class="ghost-btn small-btn" data-action="calendar" data-type="cathealth" data-pet="${pet.id}" data-id="${it.id}">加入日历</button>` : ""}
+          <button class="icon-btn" data-action="edit-cathealth" data-pet="${pet.id}" data-id="${it.id}" aria-label="编辑">✎</button>
+          <button class="icon-btn danger" data-action="delete-cathealth" data-pet="${pet.id}" data-id="${it.id}" aria-label="删除">×</button>
         </div>
       </article>`;
     })
     .join("");
 }
 
-function renderCats() {
-  renderCatProfile();
-  renderCatWeight();
-  renderCatHealth();
-  const moods = [...new Set(data.cats.map((c) => c.mood).filter(Boolean))];
-  if (activeCatFilter !== "all" && !moods.includes(activeCatFilter)) {
-    activeCatFilter = "all";
+function renderPet(pet) {
+  renderCatProfile(pet);
+  renderCatWeight(pet);
+  renderCatHealth(pet);
+  const cats = data[pet.catsKey] || [];
+  const moods = [...new Set(cats.map((c) => c.mood).filter(Boolean))];
+  if (activeCatFilters[pet.id] !== "all" && !moods.includes(activeCatFilters[pet.id])) {
+    activeCatFilters[pet.id] = "all";
   }
-  els.catFilters.innerHTML = data.cats.length
-    ? `<button class="${activeCatFilter === "all" ? "active" : ""}" data-action="filter-cat" data-mood="all">全部</button>` +
+  document.getElementById(pet.filtersEl).innerHTML = cats.length
+    ? `<button class="${activeCatFilters[pet.id] === "all" ? "active" : ""}" data-action="filter-cat" data-pet="${pet.id}" data-mood="all">全部</button>` +
       moods
         .map(
           (m) =>
-            `<button class="${activeCatFilter === m ? "active" : ""}" data-action="filter-cat" data-mood="${escapeHtml(m)}">${CAT_MOOD_EMOJI[m] || "🐾"} ${escapeHtml(m)}</button>`
+            `<button class="${activeCatFilters[pet.id] === m ? "active" : ""}" data-action="filter-cat" data-pet="${pet.id}" data-mood="${escapeHtml(m)}">${CAT_MOOD_EMOJI[m] || "🐾"} ${escapeHtml(m)}</button>`
         )
         .join("")
     : "";
 
-  const visible = [...data.cats]
-    .filter((c) => activeCatFilter === "all" || c.mood === activeCatFilter)
+  const visible = [...cats]
+    .filter((c) => activeCatFilters[pet.id] === "all" || c.mood === activeCatFilters[pet.id])
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
-  const empty = document.getElementById("catEmpty");
-  if (data.cats.length === 0) {
+  const empty = document.getElementById(pet.gridEmptyEl);
+  if (cats.length === 0) {
     empty.hidden = false;
-    empty.textContent = "还没有嘻嘻的记录，点右上角记录第一条吧～";
+    empty.textContent = `还没有${pet.name}的记录，点右上角记录第一条吧～`;
   } else if (visible.length === 0) {
     empty.hidden = false;
     empty.textContent = "这个状态下还没有记录～";
@@ -1338,7 +1406,7 @@ function renderCats() {
     empty.hidden = true;
   }
 
-  els.catGrid.innerHTML = visible
+  document.getElementById(pet.gridEl).innerHTML = visible
     .map(
       (item) => `
       <article class="recipe-card cat-card" data-id="${item.id}">
@@ -1358,14 +1426,18 @@ function renderCats() {
           </div>
           ${item.content ? `<div class="recipe-block"><p>${escapeHtml(item.content)}</p></div>` : ""}
           <div class="card-actions inline">
-            <button class="icon-btn" data-action="edit-cat" data-id="${item.id}" aria-label="编辑">✎</button>
-            <button class="icon-btn danger" data-action="delete-cat" data-id="${item.id}" aria-label="删除">×</button>
+            <button class="icon-btn" data-action="edit-cat" data-pet="${pet.id}" data-id="${item.id}" aria-label="编辑">✎</button>
+            <button class="icon-btn danger" data-action="delete-cat" data-pet="${pet.id}" data-id="${item.id}" aria-label="删除">×</button>
           </div>
         </div>
       </article>
     `
     )
     .join("");
+}
+
+function renderCats() {
+  PETS.forEach(renderPet);
 }
 
 function renderNotes() {
@@ -1686,10 +1758,10 @@ function dishFields(item = {}) {
   ];
 }
 
-function catFields(item = {}) {
+function catFields(pet, item = {}) {
   const date = item.date || today.toISOString().slice(0, 10);
   return [
-    { label: "标题", name: "title", value: item.title || "", required: true, placeholder: "比如：嘻嘻今天拆家了" },
+    { label: "标题", name: "title", value: item.title || "", required: true, placeholder: `比如：${pet.name}今天拆家了` },
     { label: "日期", name: "date", type: "date", value: date, required: true },
     {
       label: "状态",
@@ -1699,15 +1771,15 @@ function catFields(item = {}) {
       options: CAT_MOODS.map((m) => ({ value: m.value, label: `${m.emoji} ${m.value}` })),
     },
     { label: "体重（kg，可选）", name: "weight", type: "number", value: item.weight != null ? String(item.weight) : "", placeholder: "比如：4.2" },
-    { label: "内容", name: "content", type: "textarea", value: item.content || "", rows: 3, placeholder: "记录嘻嘻今天的小事..." },
+    { label: "内容", name: "content", type: "textarea", value: item.content || "", rows: 3, placeholder: `记录${pet.name}今天的小事...` },
     { label: "照片（可选，会自动压缩）", name: "image", type: "image", value: item.image || "" },
   ];
 }
 
-function catProfileFields(p = {}) {
+function catProfileFields(pet, p = {}) {
   return [
-    { label: "名字", name: "name", value: p.name || "嘻嘻", placeholder: "嘻嘻" },
-    { label: "头像照片（可选，不传则用蓝白猫卡通头像）", name: "avatar", type: "image", value: p.avatar || "" },
+    { label: "名字", name: "name", value: p.name || pet.name, placeholder: pet.name },
+    { label: `头像照片（可选，不传则用${pet.doodleName}卡通头像）`, name: "avatar", type: "image", value: p.avatar || "" },
     { label: "生日（可选）", name: "birthday", type: "date", value: p.birthday || "" },
     { label: "品种（可选）", name: "breed", value: p.breed || "", placeholder: "比如：英短蓝猫" },
     { label: "当前体重（kg，可选）", name: "weight", type: "number", value: p.weight != null ? String(p.weight) : "", placeholder: "比如：4.2" },
@@ -2016,36 +2088,38 @@ document.getElementById("addRecipe").addEventListener("click", () => {
   });
 });
 
-document.getElementById("addCat").addEventListener("click", () => {
-  openModal("添加嘻嘻记录", catFields(), (values) => {
-    data.cats.unshift({
-      id: uid("c"),
-      title: values.title,
-      date: values.date,
-      mood: values.mood,
-      weight: values.weight ? Number(values.weight) : null,
-      content: values.content,
-      image: values.image || "",
+PETS.forEach((pet) => {
+  document.getElementById(pet.addBtn).addEventListener("click", () => {
+    openModal(`添加${pet.name}记录`, catFields(pet), (values) => {
+      data[pet.catsKey].unshift({
+        id: uid("c"),
+        title: values.title,
+        date: values.date,
+        mood: values.mood,
+        weight: values.weight ? Number(values.weight) : null,
+        content: values.content,
+        image: values.image || "",
+      });
+      saveData();
+      renderPet(pet);
+      showToast(`${pet.name}记录已添加`);
     });
-    saveData();
-    renderCats();
-    showToast("嘻嘻记录已添加");
   });
-});
 
-document.getElementById("addCatHealth").addEventListener("click", () => {
-  openModal("添加健康提醒", catHealthFields(), (values) => {
-    data.catHealth.unshift({
-      id: uid("h"),
-      type: values.type,
-      name: values.name || "",
-      lastDate: values.lastDate,
-      cycleDays: values.cycleDays ? Number(values.cycleDays) : null,
-      note: values.note || "",
+  document.getElementById(pet.addHealthBtn).addEventListener("click", () => {
+    openModal(`添加${pet.name}健康提醒`, catHealthFields(), (values) => {
+      data[pet.healthKey].unshift({
+        id: uid("h"),
+        type: values.type,
+        name: values.name || "",
+        lastDate: values.lastDate,
+        cycleDays: values.cycleDays ? Number(values.cycleDays) : null,
+        note: values.note || "",
+      });
+      saveData();
+      renderPet(pet);
+      showToast("健康提醒已添加");
     });
-    saveData();
-    renderCats();
-    showToast("健康提醒已添加");
   });
 });
 
@@ -2219,23 +2293,24 @@ document.addEventListener("click", (event) => {
   }
 
   if (action === "filter-cat") {
-    activeCatFilter = btn.dataset.mood;
-    renderCats();
+    activeCatFilters[btn.dataset.pet] = btn.dataset.mood;
+    renderPet(PET_BY_ID[btn.dataset.pet]);
     return;
   }
 
   if (action === "edit-cat-profile") {
-    openModal("嘻嘻的小档案", catProfileFields(data.catProfile), (values) => {
-      data.catProfile = {
-        name: values.name || "嘻嘻",
+    const pet = PET_BY_ID[btn.dataset.pet] || PETS[0];
+    openModal(`${pet.name}的小档案`, catProfileFields(pet, data[pet.profileKey]), (values) => {
+      data[pet.profileKey] = {
+        name: values.name || pet.name,
         avatar: values.avatar || "",
         birthday: values.birthday || "",
         breed: values.breed || "",
         weight: values.weight ? Number(values.weight) : null,
       };
       saveData();
-      renderCats();
-      showToast("嘻嘻档案已更新");
+      renderPet(pet);
+      showToast(`${pet.name}档案已更新`);
     });
     return;
   }
@@ -2258,9 +2333,10 @@ document.addEventListener("click", (event) => {
       const item = data.wishes.find((w) => w.id === id);
       if (item && item.targetDate) opts = { title: item.title, date: item.targetDate, note: item.note, remindMinutes: 1440 };
     } else if (type === "cathealth") {
-      const item = data.catHealth.find((h) => h.id === id);
+      const pet = PET_BY_ID[btn.dataset.pet] || PETS[0];
+      const item = (data[pet.healthKey] || []).find((h) => h.id === id);
       const info = item ? catHealthInfo(item) : null;
-      if (item && info && info.nextDate) opts = { title: `嘻嘻 · ${item.name || item.type}`, date: info.nextDate, note: item.note, remindMinutes: 1440 };
+      if (item && info && info.nextDate) opts = { title: `${pet.name} · ${item.name || item.type}`, date: info.nextDate, note: item.note, remindMinutes: 1440 };
     }
     if (opts) {
       downloadICS(opts);
@@ -2269,6 +2345,7 @@ document.addEventListener("click", (event) => {
   }
 
   if (action.startsWith("delete-")) {
+    const pet = PET_BY_ID[btn.dataset.pet] || PETS[0];
     const labels = {
       diary: "这条日常记录",
       wish: "这个心愿",
@@ -2279,7 +2356,7 @@ document.addEventListener("click", (event) => {
       recipe: "这道食谱",
       dish: "这道菜",
       order: "这张小票",
-      cat: "这条嘻嘻记录",
+      cat: `这条${pet.name}记录`,
       cathealth: "这条健康提醒",
     };
     const type = action.replace("delete-", "");
@@ -2295,8 +2372,8 @@ document.addEventListener("click", (event) => {
       recipe: "recipes",
       dish: "dishes",
       order: "orders",
-      cat: "cats",
-      cathealth: "catHealth",
+      cat: pet.catsKey,
+      cathealth: pet.healthKey,
     };
     data[keyMap[type]] = data[keyMap[type]].filter((item) => item.id !== id);
     saveData();
@@ -2406,8 +2483,10 @@ document.addEventListener("click", (event) => {
       });
     }
     if (type === "cat") {
-      const item = data.cats.find((c) => c.id === id);
-      openModal("编辑嘻嘻记录", catFields(item), (values) => {
+      const pet = PET_BY_ID[btn.dataset.pet] || PETS[0];
+      const item = (data[pet.catsKey] || []).find((c) => c.id === id);
+      if (!item) return;
+      openModal(`编辑${pet.name}记录`, catFields(pet, item), (values) => {
         Object.assign(item, {
           title: values.title,
           date: values.date,
@@ -2417,12 +2496,14 @@ document.addEventListener("click", (event) => {
           image: values.image || "",
         });
         saveData();
-        renderCats();
-        showToast("嘻嘻记录已更新");
+        renderPet(pet);
+        showToast(`${pet.name}记录已更新`);
       });
     }
     if (type === "cathealth") {
-      const item = data.catHealth.find((h) => h.id === id);
+      const pet = PET_BY_ID[btn.dataset.pet] || PETS[0];
+      const item = (data[pet.healthKey] || []).find((h) => h.id === id);
+      if (!item) return;
       openModal("编辑健康提醒", catHealthFields(item), (values) => {
         Object.assign(item, {
           type: values.type,
@@ -2432,7 +2513,7 @@ document.addEventListener("click", (event) => {
           note: values.note || "",
         });
         saveData();
-        renderCats();
+        renderPet(pet);
         showToast("健康提醒已更新");
       });
     }
@@ -2466,7 +2547,8 @@ const VIEWS = {
   wishlist: [".wish-section"],
   recipes: [".recipe-section"],
   menu: [".menu-section"],
-  cat: [".cat-section"],
+  cat: ["#cat"],
+  xiaoju: ["#xiaoju"],
   album: [".album-section"],
   notes: [".notes-section"],
   map: [".map-section"],
@@ -2480,6 +2562,7 @@ const VIEW_OF = {
   recipes: "recipes",
   menu: "menu",
   cat: "cat",
+  xiaoju: "xiaoju",
   album: "album",
   notes: "notes",
   map: "map",
